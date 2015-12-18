@@ -1,0 +1,179 @@
+{
+    "A" : {
+	"display" : "Aristocrat"
+    },
+    "xx01" : {
+	"display" : "AMSCO"
+    },
+    "xx02" : {
+	"display" : "AUTOKEY"
+    },
+    "xx03" : {
+	"display" : "BACONIAN"
+    },
+    "xx04" : {
+	"display" : "BAZERIES"
+    },
+    "xx05" : {
+	"display" : "BEAUFORT"
+    },
+    "xx06" : {
+	"display" : "BIFID"
+    },
+    "xx07" : {
+	"display" : "CADENUS"
+    },
+    "xx08" : {
+	"display" : "CHECKERBOARD"
+    },
+    "xx09" : {
+	"display" : "COMPLETE COLUMNAR TRANSPOSITION"
+    },
+    "xx10" : {
+	"display" : "CM BIFID"
+    },
+    "xx11" : {
+	"display" : "DIGRAFID"
+    },
+    "xx12" : {
+	"display" : "FOURSQUARE"
+    },
+    "xx13" : {
+	"display" : "FRACTIONATED MORSE"
+    },
+    "xx14" : {
+	"display" : "GRANDPRE"
+    },
+    "xx15" : {
+	"display" : "GRILLE"
+    },
+    "xx16" : {
+	"display" : "GROMARK"
+    },
+    "xx17" : {
+	"display" : "GRONSFELD"
+    },
+    "xx18" : {
+	"display" : "HEADLINES"
+    },
+    "xx19" : {
+	"display" : "HOMOPHONIC"
+    },
+    "xx20" : {
+	"display" : "INCOMPLETE COLUMNAR"
+    },
+    "xx21" : {
+	"display" : "INTERRUPTED KEY"
+    },
+    "xx22" : {
+	"display" : "KEY PHRASE"
+    },
+    "xx23" : {
+	"display" : "MONOME-DINOME"
+    },
+    "xx24" : {
+	"display" : "MORBIT"
+    },
+    "xx25" : {
+	"display" : "MYSZKOWSKI"
+    },
+    "xx26" : {
+	"display" : "NICODEMUS"
+    },
+    "xx27" : {
+	"display" : "NIHILIST SUBSTITUTION"
+    },
+    "xx28" : {
+	"display" : "NIHILIST TRANSPOSITION"
+    },
+    "xx29" : {
+	"display" : "NULL"
+    },
+    "xx30" : {
+	"display" : "PERIODIC GROMARK"
+    },
+    "xx31" : {
+	"display" : "PHILLIPS"
+    },
+    "xx32" : {
+	"display" : "PHILLIPS-C"
+    },
+    "xx33" : {
+	"display" : "PHILLIPS-RC"
+    },
+    "xx34" : {
+	"display" : "PLAYFAIR"
+    },
+    "xx35" : {
+	"display" : "POLLUX"
+    },
+    "xx36" : {
+	"display" : "PORTA"
+    },
+    "xx37" : {
+	"display" : "PORTAX"
+    },
+    "xx38" : {
+	"display" : "PROGRESSIVE KEY"
+    },
+    "xx39" : {
+	"display" : "QUAGMIRE I"
+    },
+    "xx40" : {
+	"display" : "QUAGMIRE II"
+    },
+    "xx41" : {
+	"display" : "QUAGMIRE III"
+    },
+    "xx42" : {
+	"display" : "QUAGMIRE IV"
+    },
+    "xx43" : {
+	"display" : "RAGBABY"
+    },
+    "xx44" : {
+	"display" : "RAILFENCE"
+    },
+    "xx45" : {
+	"display" : "REDEFENCE"
+    },
+    "xx46" : {
+	"display" : "ROUTE TRANSPOSITION"
+    },
+    "xx47" : {
+	"display" : "RUNNING KEY"
+    },
+    "xx48" : {
+	"display" : "SERIATED PLAYFAIR"
+    },
+    "xx49" : {
+	"display" : "SLIDEFAIR"
+    },
+    "xx50" : {
+	"display" : "SWAGMAN"
+    },
+    "xx51" : {
+	"display" : "TRIDIGITAL"
+    },
+    "xx52" : {
+	"display" : "TRIFID"
+    },
+    "xx53" : {
+	"display" : "TRI-SQUARE"
+    },
+    "xx54" : {
+	"display" : "TWIN BIFID"
+    },
+    "xx55" : {
+	"display" : "TWIN TRIFID"
+    },
+    "xx56" : {
+	"display" : "TWO-SQUARE"
+    },
+    "xx57" : {
+	"display" : "VARIANT"
+    },
+    "xx58" : {
+	"display" : "VIGENERE"
+    }
+}

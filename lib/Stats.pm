@@ -27,8 +27,21 @@ sub mono_counts {
     }
     my @alpha = sort keys %counts;
     my @number = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$counts{$_}.".ord($_)} keys %counts;
-    my %rtn = (freqs => {%counts}, alpha => [@alpha], number => [@number]);
+    my %rtn = (freqs => {%counts}, alpha => [@alpha], number => [@number], ic => _ic(\%counts));
     return wantarray ? %rtn : \%rtn;
+}
+#ZZZ
+
+# _ic #AAA
+sub _ic {
+    my %stats = %{shift @_};
+    my $prod_sum = 0;
+    my $total = 0;
+    for (keys %stats) {
+	$prod_sum += $stats{$_}*($stats{$_}-1);
+	$total += $stats{$_};
+    }
+    return 26 * $prod_sum / ($total*($total-1));
 }
 #ZZZ
 

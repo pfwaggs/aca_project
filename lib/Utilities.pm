@@ -80,12 +80,13 @@ sub On_width {
 }
 #ZZZ
 
-sub Aca_password {
-    my $jpp_in = JSON::PP->new->utf8;
-    my %msgs = %{$jpp_in->decode(join(' ',path(shift)->lines({chomp=>1})))};
-    my $str = lc substr($msgs{A}{1}{msg}[0] =~ s/\W//gr,0,7).'1';
-    return $str;
-}
-
+## Aca_password #AAA
+#sub Aca_password {
+#    my $jpp_in = JSON::PP->new->utf8;
+#    my %msgs = %{$jpp_in->decode(join(' ',path(shift)->lines({chomp=>1})))};
+#    my $str = lc substr($msgs{A}{1}{msg}[0] =~ s/\W//gr,0,7).'1';
+#    return $str;
+#}
+##ZZZ
 
 1;

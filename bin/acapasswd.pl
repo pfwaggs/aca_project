@@ -7,14 +7,8 @@ use strict;
 use v5.18;
 
 use Path::Tiny;
+use JSON::PP;
 
-our $dir;
-BEGIN {
-    our $dir = Path::Tiny->cwd;
-    $dir = path($dir)->parent if $dir =~ m{/bin$};
-    $dir = path($dir)->stringify;
-    unshift @INC, "$dir/lib" unless grep {/$dir/} @INC;
-}
-use Utilities;
-
-say my $str = Utilities::Aca_password(shift);
+my $jpp_in = JSON::PP->new->utf8;
+my %msgs = %{$jpp_in->decode(join(' ',path(shift)->lines({chomp=>1})))};
+say lc substr($msgs{A}{1}{msg}[0]=~s/\W//gr,0,7).'1';

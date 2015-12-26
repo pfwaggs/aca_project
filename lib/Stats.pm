@@ -8,27 +8,32 @@ use Data::Printer;
 use Path::Tiny;
 use JSON::PP;
 
-# show_stats #AAA
-sub show_stats {
+# show_mono_stats #AAA
+sub show_mono_stats {
     my %stats = %{shift @_};
-    my $key = shift;
-    my @order = @{$stats{$key}};
-    say join(' ',map {sprintf "%2s", $_} @{$stats{freqs}}{@order});
-    say join(' ',map {sprintf "%2s", $_} @order);
+    my $order = shift;
+    my @order;
+    if ($order eq 'alpha') {
+	@order = sort keys %{$stats{freqs}};
+    } else { #for now this is only numerical
+	my %mono = %{$stats{freqs}};
+	@order = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$mono{$_}.".ord($_)} keys %mono;
+    }
+    my @rtn;
+    push @rtn, join(' ',map {sprintf "%2s", $_} @{$stats{freqs}}{@order});
+    push @rtn, join(' ',map {sprintf "%2s", $_} @order);
+    return wantarray ? @rtn : \@rtn;
 }
 #ZZZ
 
-# mono_counts #AAA
-sub mono_counts {
+# mono_stats #AAA
+sub mono_stats {
     my @txt = @{shift @_};
     my %counts;
     for (map {s/\W//gr} @txt) {
 	map {$counts{$_}++} split //, $_;
     }
-    my @alpha = sort keys %counts;
-    my @number = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$counts{$_}.".ord($_)} keys %counts;
-    my $ic = _ic(\%counts);
-    my %rtn = (freqs => {%counts}, alpha => [@alpha], number => [@number], ic => $ic);
+    my %rtn = (freqs => {%counts}, ic => {_ic(\%counts)});
     return wantarray ? %rtn : \%rtn;
 }
 #ZZZ

@@ -48,7 +48,7 @@ my @msgs = sort {$a<=>$b} keys %{$msgs{$family}};
 my ($msg) = Menu::Pick({header=>'pick a message'}, @menu);
 $msg = $msgs[$msg];
 
-$msgs{$family}{$msg} = Ciphers::aristocrat($msgs{$family}{$msg});
+$msgs{$family}{$msg} = Ciphers::aristocrat_solver($msgs{$family}{$msg});
 my %output;
 $output{$family}{$msg} = $msgs{$family}{$msg};
 

@@ -49,6 +49,7 @@ for (@lines) {
         my $family = join('-',@meta_fields);
         $msgs{$family}{$key}{msg} = [@msg];
         $msgs{$family}{$key}{state} = undef;
+        $msgs{$family}{$key}{solved} = 0;
         @meta = ();
         @msg = ();
     }

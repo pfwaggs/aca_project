@@ -12,10 +12,14 @@ use Stats;
 
 # parse_action #AAA
 sub parse_action {
-    my ($action, $show_stats, $stat_key, $href) = @_;
+    my ($action, $show_stats, $stat_order, $solved, $href) = @_;
     my $my_action   = 1 - ($action =~ s/quit//);
     if ($action =~ s/(number|alpha)//) {
-	$stat_key = $1;
+	$stat_order = $1;
+    }
+    if ($action =~ s/solved//) {
+	$solved = 1;
+	$my_action = 0; 
     }
     if ($action =~ s/stats//) {
 	$show_stats = 1 - $show_stats;
@@ -28,43 +32,54 @@ sub parse_action {
 	    $href->{$f} = $s =~ /\w/ ? $s : ' ';
 	}
     }
-    return ($my_action, $show_stats, $stat_key, $href);
+    return ($my_action, $show_stats, $stat_order, $solved, $href);
+}
+#ZZZ
+
+# aristocrat_decrypt #AAA
+sub aristocrat_decrypt {
+#   p @_;
+    my %data = %{shift @_};
+    my $CIPHER = join('', keys $data{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    my $plain = lc join('', values $data{state})//'abcdefghijklmnopqrstuvwxyz';
+
+    my @rtn;
+    for (@{$data{msg}}) {
+	my $line = $_;
+	eval "\$line =~ tr/$CIPHER/$plain/" if $CIPHER;
+	$line =~ s/[[:upper:]]/ /g;
+	eval "\$line =~ tr/$plain/\U$plain/" if $plain;
+	push @rtn, $line;
+    }
+    return wantarray ? @rtn : \@rtn;
 }
 #ZZZ
 
 # aristocrat #AAA
-sub aristocrat {
+sub aristocrat_solver {
     my %data = %{shift @_};
     $data{state} = {} unless defined $data{state};
-    p %data;
+    $data{stats} = {Stats::mono_stats($data{msg})} unless defined $data{stats};
 
-    my %stats = Stats::mono_counts($data{msg});
-
-    my $stat_key = 'alpha';
+    my $stat_order = 'alpha';
     my $show_stats = 1;
     my $action = 1;
-    while ($action) {
+    while ($action and ! $data{solved}) {
 	system('clear');
-        my $first = join('', keys $data{state});
-        my $second = lc join('', values $data{state});
-        my $SECOND = uc $second;
-	$show_stats ? Stats::show_stats(\%stats, $stat_key) : say join(' ',map {sprintf "%2s", $_} @{$stats{$stat_key}});
-	my $ALPHA = join(' ',map {sprintf "%2s", $_} @{$stats{$stat_key}});
-	eval "\$ALPHA =~ tr/$first/$second/" if $first;
-	$ALPHA =~ s/[[:upper:]]/ /g;
-	eval "\$ALPHA =~ tr/$second/$SECOND/" if $SECOND;
-	say $ALPHA;
+	my @stats = Stats::show_mono_stats($data{stats}, $stat_order);
+	say $stats[0] if $show_stats;
+	say $stats[-1];
+	say for aristocrat_decrypt({state=>$data{state}, msg=>[$stats[-1]]}); # create a fake message to decrypt
 	say '';
-        for (@{$data{msg}}) {
-            say my $line = $_;
-            eval "\$line =~ tr/$first/$second/" if $first;
-            $line =~ s/[[:upper:]]/ /g;
-            eval "\$line =~ tr/$second/$SECOND/" if $SECOND;
-            say "$line\n";
-        }
+	my @decrypt = aristocrat_decrypt(\%data);
+	for (keys @{$data{msg}}) {
+	    say $data{msg}[$_];
+	    say $decrypt[$_];
+	    say '';
+	}
         print "cipher/plain pair? ";
         chomp($action=<STDIN>);
-	($action, $show_stats, $stat_key, $data{state}) = parse_action($action, $show_stats, $stat_key, $data{state}); # we overwrite action, stat_key and data{state} based on action
+	($action, $show_stats, $stat_order, $data{solved}, $data{state}) = parse_action($action, $show_stats, $stat_order, $data{solved}, $data{state}); # we overwrite action, stat_key and data{state} based on action
     }
     return wantarray ? %data : \%data;
 }

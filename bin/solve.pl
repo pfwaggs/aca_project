@@ -33,24 +33,28 @@ use Stats;
 
 #ZZZ
 
+my %solver = (
+    A   => \&Ciphers::aristocrat_solver,
+    HDL => \&Ciphers::headline_solver,
+);
+
+my $input_file = shift;
+
 my $jpp_in = JSON::PP->new->utf8;
 my $name_map_file = "$dir/etc/name_map.jsn";
 my %name_map = %{$jpp_in->decode(join(' ',path($name_map_file)->lines({chomp=>1})))};
-my %msgs = %{$jpp_in->decode(join(' ',path(shift)->lines({chomp=>1})))};
+my %msgs = %{$jpp_in->decode(join(' ',path($input_file)->lines({chomp=>1})))};
 
-my @families = grep {exists $name_map{$_}} keys %msgs;
-my @menu = map {$name_map{$_}{display}} @families;
-my ($family) = Menu::Pick({header=>'pick a family'}, @menu);
-$family = $families[$family];
-
-my @msgs = sort {$a<=>$b} keys %{$msgs{$family}};
-@menu = map {$msgs{$family}{$_}{msg}[0]} @msgs;
-my ($msg) = Menu::Pick({header=>'pick a message'}, @menu);
-$msg = $msgs[$msg];
-
-$msgs{$family}{$msg} = Ciphers::aristocrat_solver($msgs{$family}{$msg});
-my %output;
-$output{$family}{$msg} = $msgs{$family}{$msg};
+while (1) {
+    my @families = grep {exists $name_map{$_}} keys %msgs;
+    my @menu = map {$name_map{$_}{display}} @families;
+    my ($family) = Menu::Pick({header=>'pick a family'}, @menu);
+    $family = $families[$family];
+    $msgs{$family} = $solver{$family}($msgs{$family});
+    print "finished? ";
+    chomp(my $rtn = <STDIN>);
+    last if $rtn =~ /^y/;
+}
 
 my $jpp_out = JSON::PP->new->pretty->utf8;
-path('temp_sols.jsn')->spew($jpp_out->encode(\%output));
+path($input_file)->spew($jpp_out->encode(\%msgs));

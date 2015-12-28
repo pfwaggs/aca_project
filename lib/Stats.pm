@@ -8,8 +8,26 @@ use Data::Printer;
 use Path::Tiny;
 use JSON::PP;
 
-# show_mono_stats #AAA
-sub show_mono_stats {
+
+# build_stat_indices #AAA
+sub build_stat_indices {
+    my %stats = %{shift @_};
+    my %freq = %{$stats{freqs}};
+    my %rtn;
+    my @keys = sort keys %freq;
+    $rtn{alpha}{keys} = [map {sprintf "%2s", $_} @keys];
+    $rtn{alpha}{vals} = [map {sprintf "%2s", $_} @freq{@keys}];
+
+    @keys = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$freq{$_}.".ord($_)} keys %freq;
+    $rtn{number}{keys} = [map {sprintf "%2s", $_} @keys];
+    $rtn{number}{vals} = [map {sprintf "%2s", $_} @freq{@keys}];
+
+    return wantarray ? %rtn : \%rtn;
+}
+#ZZZ
+
+# show_mono_stats_old #AAA
+sub show_mono_stats_old {
     my %stats = %{shift @_};
     my $order = shift;
     my @order;

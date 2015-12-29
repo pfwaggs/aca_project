@@ -56,5 +56,6 @@ while (1) {
     last if $rtn =~ /^y/;
 }
 
+my $output_file = '/tmp/check.jsn';
 my $jpp_out = JSON::PP->new->pretty->utf8;
-path($input_file)->spew($jpp_out->encode(\%msgs));
+path($output_file)->spew($jpp_out->encode(\%msgs));

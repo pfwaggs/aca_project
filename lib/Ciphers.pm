@@ -55,9 +55,103 @@ sub monosubstitution {
 }
 #ZZZ
 
+# commands #AAA
+
+my %commands;
+%commands = (
+
+# order #AAA
+    order => sub {
+	my %in = %{shift @_};
+	$in{order} = $in{option};
+	my %t = $in{order} eq 'key' ? %{$in{key}} : %{$in{val}};
+	my @a = sort keys %t;
+	my @b = @t{@a};
+	@in{qw/top bottom/} = $in{order} eq 'key' ? ([@a], [@b]) : ([@b], [@a]);
+	return wantarray ? %in : \%in;
+    },
+#ZZZ
+
+# rev #AAA
+    rev => sub {
+	my %in = %{shift @_};
+	$in{top} = [reverse @{$in{top}}];
+	$in{bottom} = [reverse @{$in{bottom}}];
+	return wantarray ? %in : \%in;
+    },
+#ZZZ
+
+# slide #AAA
+    slide => sub {
+	my %in = %{shift @_};
+	my %t = $in{order} eq 'key' ? %{$in{key}} : %{$in{val}};
+	my @a = sort keys %t;
+	my @b = @t{@a};
+	while ($b[0] ne uc $in{option}) { # a little tricky here; a is the sorted list so b probably has the keyword
+	    push @a, $a[0]; shift @a;
+	    push @b, $b[0]; shift @b;
+	}
+	@in{qw/top bottom/} = $in{order} eq 'key' ? ([@a], [@b]) : ([@b], [@a]);
+	return wantarray ? %in : \%in;
+    },
+#ZZZ
+
+# insert #AAA
+    insert => sub {
+	my %in = %{shift @_};
+	for (split /:/, uc $in{option} =~ s/^\s*|\s*$//gr) {
+	    my ($key, $val) = split //, $_, 2;
+	    $in{key}{$key} = $val;
+	    $in{val}{$val} = $key;
+	}
+	$in{option} = $in{order};
+	%in = $commands{order}(\%in);
+	return wantarray ? %in : \%in;
+    },
+#ZZZ
+
+# keywords #AAA
+    keyword => sub {
+	my %in = %{shift @_};
+	push @{$in{keywords}}, uc $in{option};
+	return wantarray ? %in : \%in;
+    },
+#ZZZ
+
+);
+#ZZZ
+
+# aristocrat_key_analysis #AAA
 sub aristocrat_key_analysis {
-    ...;
+    my %msg = %{shift @_};
+    my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
+
+    my $commands_regex = join('|', map {"($_)"} ('quit', keys %commands));
+    $commands_regex = qr/$commands_regex/;
+    while (1) {
+  	system('clear');
+	say "order = $bob{order}";
+	say join(' ', 'key :', @{$bob{top}});
+	say join(' ', 'val :', @{$bob{bottom}});
+	if (exists $bob{keywords}) {
+	    say 'keywords :';
+	    say "\t$_" for @{$bob{keywords}};
+	}
+	print "command? ";
+	chomp(my $reply = <STDIN>);
+	$reply =~ s/\b($commands_regex)\b//;
+	my $cmd = $1;
+	next unless exists $commands{$cmd};
+	$bob{option} = $reply =~ s/^\s*|\s*$//r;
+	$cmd eq 'quit' ? last : (%bob = $commands{$cmd}(\%bob));
+    }
+    print "update? ";
+    chomp(my $reply = <STDIN>);
+    $bob{update} = $reply =~ /yes/;
+    my %rtn = $bob{update} ? %bob : %msg;
+    return wantarray ? %rtn : \%rtn;
 }
+#ZZZ
 
 # aristocrat_plaintext #AAA
 sub aristocrat_plaintext {

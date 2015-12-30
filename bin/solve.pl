@@ -44,6 +44,7 @@ my $jpp_in = JSON::PP->new->utf8;
 my $name_map_file = "$dir/etc/name_map.jsn";
 my %name_map = %{$jpp_in->decode(join(' ',path($name_map_file)->lines({chomp=>1})))};
 my %msgs = %{$jpp_in->decode(join(' ',path($input_file)->lines({chomp=>1})))};
+my %solved;
 
 while (1) {
     my @families = grep {exists $name_map{$_}} keys %msgs;
@@ -51,11 +52,16 @@ while (1) {
     my ($family) = Menu::Pick({header=>'pick a family'}, @menu);
     $family = $families[$family];
     $msgs{$family} = $solver{$family}($msgs{$family});
+    my @solved = grep {$msgs{$family}{$_}{solved}} keys %{$msgs{$family}};
+    $solved{$family}{$_} = $msgs{$family}{$_} for @solved;
+    delete $msgs{$family}{$_} for @solved;
     print "finished? ";
     chomp(my $rtn = <STDIN>);
     last if $rtn =~ /^y/;
 }
 
-my $output_file = '/tmp/check.jsn';
+my $output_file = '/tmp/check_orig.jsn';
 my $jpp_out = JSON::PP->new->pretty->utf8;
 path($output_file)->spew($jpp_out->encode(\%msgs));
+$output_file = '/tmp/check_solved.jsn';
+path($output_file)->spew($jpp_out->encode(\%solved)) if keys %solved;

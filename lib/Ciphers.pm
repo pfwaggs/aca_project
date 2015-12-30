@@ -121,8 +121,8 @@ my %commands;
 );
 #ZZZ
 
-# aristocrat_key_analysis #AAA
-sub aristocrat_key_analysis {
+# aristocrat_key_recovery #AAA
+sub aristocrat_key_recovery {
     my %msg = %{shift @_};
     my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
 
@@ -141,20 +141,24 @@ sub aristocrat_key_analysis {
 	chomp(my $reply = <STDIN>);
 	$reply =~ s/\b($commands_regex)\b//;
 	my $cmd = $1;
+	last if $cmd eq 'quit';
 	next unless exists $commands{$cmd};
 	$bob{option} = $reply =~ s/^\s*|\s*$//r;
-	$cmd eq 'quit' ? last : (%bob = $commands{$cmd}(\%bob));
+	%bob = $commands{$cmd}(\%bob);
     }
     print "update? ";
     chomp(my $reply = <STDIN>);
-    $bob{update} = $reply =~ /yes/;
-    my %rtn = $bob{update} ? %bob : %msg;
-    return wantarray ? %rtn : \%rtn;
+    $bob{update} = $reply =~ /^y/i;
+    if ($bob{update} and exists $bob{keywords}) {
+	$msg{keywords} = [@{$bob{keywords}}];
+	$msg{update} = 1;
+    }
+    return wantarray ? %msg : \%msg;
 }
 #ZZZ
 
-# aristocrat_plaintext #AAA
-sub aristocrat_plaintext {
+# aristocrat_plaintext_recovery #AAA
+sub aristocrat_plaintext_recovery {
     my %msg = %{shift @_};
     $msg{update} = 0;
     my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, solved=>$msg{solved});
@@ -197,17 +201,21 @@ sub aristocrat_solver {
     my %msgs = %{shift @_};
 
     my @msgs_list = sort {$a<=>$b} keys %msgs;
-    my @menu = map {$msgs{$_}{msg}[0]} @msgs_list;
+    my @msg_menu = map {$msgs{$_}{msg}[0]} @msgs_list;
     while (1) {
-	my ($msg) = Menu::Pick({header=>'pick a message'}, @menu);
+	my ($msg) = Menu::Pick({header=>'pick a message'}, (@msg_menu, 'quit'));
+	last if $msg == @msg_menu;
 	$msg = $msgs_list[$msg]; # remap the return to a msgs hash key value
 
-	my @work = ('plaintext recovery', 'key analysis');
-	my ($work) = Menu::Pick({header=>'which would you like to do? '}, @work);
-	my %update = $work ? aristocrat_key_analysis($msgs{$msg}) : aristocrat_plaintext($msgs{$msg});
-	if ($update{update}) {
-	    delete $update{update};
-	    $msgs{$msg} = %update;
+	while (1) {
+	    my @work_menu = ('key recovery', 'plaintext recovery');
+	    my ($work) = Menu::Pick({header=>'which would you like to do? '}, (@work_menu, 'quit'));
+	    last if $work == @work_menu;
+	    my %update = $work ? aristocrat_plaintext_recovery($msgs{$msg}) : aristocrat_key_recovery($msgs{$msg});
+	    if ($update{update}) {
+		delete $update{update};
+		$msgs{$msg} = {%update};
+	    }
 	}
     }
     return wantarray ? %msgs : \%msgs;

@@ -164,7 +164,7 @@ sub aristocrat_plaintext_recovery {
     my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, solved=>$msg{solved});
     $bob{state} = defined $msg{state} ? $msg{state} : {};
     my @cipher_msg = @{$msg{msg}}; #$bob{msg} = $msg{msg};
-    my %stats = Stats::build_stat_indices($msg{stats});
+    my %stats = Stats::build_stat_indices($msg{stats}//{});
 
     while ($bob{action} and ! $bob{solved}) {
 	system('clear');
@@ -206,6 +206,7 @@ sub aristocrat_solver {
 	my ($msg) = Menu::Pick({header=>'pick a message'}, (@msg_menu, 'quit'));
 	last if $msg == @msg_menu;
 	$msg = $msgs_list[$msg]; # remap the return to a msgs hash key value
+	$msgs{$msg}{stats} = {Stats::mono_stats($msgs{$msg}{msg})} unless exists $msgs{$msg}{stats};
 
 	while (1) {
 	    my @work_menu = ('key recovery', 'plaintext recovery');

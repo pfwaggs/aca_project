@@ -7,15 +7,6 @@ use warnings;
 use strict;
 use v5.18;
 
-#use Getopt::Long qw( :config no_ignore_case auto_help );
-#my %opts;
-#my @opts;
-#my @commands;
-#GetOptions( \%opts, @opts, @commands ) or die 'something goes here';
-#use Pod::Usage;
-#use File::Basename;
-#use Cwd;
-
 use Path::Tiny;
 use JSON::PP;
 use Data::Printer;
@@ -38,30 +29,26 @@ my %solver = (
     HDL => \&Ciphers::headline_solver,
 );
 
+# read in the input file
 my $input_file = shift;
-
 my $jpp_in = JSON::PP->new->utf8;
 my $name_map_file = "$dir/etc/name_map.jsn";
 my %name_map = %{$jpp_in->decode(join(' ',path($name_map_file)->lines({chomp=>1})))};
 my %msgs = %{$jpp_in->decode(join(' ',path($input_file)->lines({chomp=>1})))};
-my %solved;
 
+# msgs is organized as a hash of hashes.  the first hash is a family of
+# messages (e.g. A [which is Aristocrats]) and within that is a hash of messages.
 while (1) {
-    my @families = grep {exists $name_map{$_}} keys %msgs;
-    my @menu = map {$name_map{$_}{display}} @families;
-    my ($family) = Menu::Pick({header=>'pick a family'}, @menu);
-    $family = $families[$family];
+    my %found_families = map {$name_map{$_}{display} => $_} grep {exists $name_map{$_}} keys %msgs;
+    my $ndx = 1;
+    my %menu = map {$ndx++=>$_} sort keys %found_families; # an alphabetical sort of families
+    my @keys = sort {$a <=> $b} keys %menu; # just sort the indices of %menu
+    my ($family) = Menu::Pick({header=>'pick a family'}, {%menu, keys=>\@keys});
+    last unless $family;
+    $family = $found_families{$menu{$family}}; # this gets us back to hash key for msgs
     $msgs{$family} = $solver{$family}($msgs{$family});
-    my @solved = grep {$msgs{$family}{$_}{solved}} keys %{$msgs{$family}};
-    $solved{$family}{$_} = $msgs{$family}{$_} for @solved;
-    delete $msgs{$family}{$_} for @solved;
-    print "finished? ";
-    chomp(my $rtn = <STDIN>);
-    last if $rtn =~ /^y/;
 }
 
 my $output_file = '/tmp/check_orig.jsn';
 my $jpp_out = JSON::PP->new->pretty->utf8;
 path($output_file)->spew($jpp_out->encode(\%msgs));
-$output_file = '/tmp/check_solved.jsn';
-path($output_file)->spew($jpp_out->encode(\%solved)) if keys %solved;

@@ -6,85 +6,111 @@ use warnings;
 use v5.18;
 use experimental qw(smartmatch autoderef);
 
-# _parse_choice #AAA
-sub _parse_choice {
-    my @valid = @{shift @_};
+#AAA _pick_Input_parse
+sub _pick_Input_parse {
     my @in = split /\s/, shift =~ s/^$/quit/r;
+    my @keys = @{shift @_};
+    my %parse = %{shift @_};
+    my ($parsed) = grep {$_ ~~ %parse} @in;
 
-    my %rtn = (msg => undef, selections => undef);
-
-    my %parse;
-    $parse{quit} = {key=>'msg', val=>0};
-    $parse{help} = {key=>'msg', val=>1};
-    $parse{all} = {key => 'selections', val => [@valid]};
-
-    my @in_parse = grep {exists $parse{$_}} @in;
-
-    if (my $cmd = shift @in_parse) {
-	$rtn{$parse{$cmd}{key}} = ref $parse{$cmd}{val} eq 'ARRAY' ? [@{$parse{$cmd}{val}}] : $parse{$cmd}{val};
+    my @rtn = ();
+    if ($parsed) {
+	push @rtn, ref $parse{$parsed} eq 'ARRAY' ? @{$parse{$parsed}} : $parse{$parsed};
     } else {
-	push @{$rtn{selections}}, grep {$_ ~~ @valid} @in;
+	push @rtn, grep {$_ ~~ $parse{all}} @in;
     }
+    push @rtn, -2 unless @rtn;
 
-    $rtn{msg} = -1 if (! defined $rtn{msg} and ! defined $rtn{selections});
-
-    return wantarray ? %rtn : \%rtn;
+    return wantarray ? @rtn : \@rtn;
 }
 #ZZZ
 
-# Pick #AAA
-sub Pick {
+#AAA _pick_Data
+sub _pick_Data {
+    my @data = ref $_[0] eq 'ARRAY' ?  @{shift @_} : (@_);
+    my $ndx = 1;
+    my %rtn = map {$ndx++ => $_} @data;
+    $rtn{keys} = [sort keys %rtn];
+    return %rtn;
+}
+#ZZZ
+
+#AAA _pick_Options
+sub _pick_Options {
     # {config params}, {%data, keys=>[], (help=>[])}
 
-    my %opts = (
+    my %rtn = (
 	header  => undef,
 	prompt  => 'pick lines: ',
 	clear   => 1,
 	max     => 1,
 	presets => [],
-	help    => ['quit', 'all'],
+	cmnds   => {quit => 0, help => -1},
     );
-    %opts = (%opts, %{shift @_}) if ref $_[0] eq 'HASH';
-    my %data = ref $_[0] eq 'HASH' ? %{shift @_} : (@_);
-    my @keys = @{$data{keys}};
-    push $opts{help}, @{$data{help}} if exists $data{help};
-    my $max = $opts{max} == -1 ? @keys : $opts{max};
+    %rtn = (%rtn, %{shift @_}) if ref $_[0] eq 'HASH';
+    return %rtn;
+}
+#ZZZ
+
+#AAA Pick
+sub Pick {
+    # hash_ref, data
+    my %opts = _pick_Options(shift);
+
+    my $hash = ref $_[0] eq 'HASH';
+    my %data = $hash ? %{$_[0]} : _pick_Data(@_);
+    $opts{cmnds}{all} = $data{keys};
+
+    my $keys = $data{keys};
+    my $max = $opts{max}//@{$data{keys}};
 
     my $picked = '*';
     my $toggle = $picked^' ';
-    my @choices = (' ') x @keys;
     my $seq = 1;
 
-    my %_menu = map {$_ => {str=>$data{$_}, s=>' '}} @keys;
+    my %_menu = map {$_ => {str=>$data{$_}, s=>' '}} @$keys;
+    map {$_++} @{$opts{presets}} unless $hash;
     for (@{$opts{presets}}) {
 	$_menu{$_}{s} ^= $toggle;
 	$_menu{$_}{order} = $seq++;
     }
-#warn '_menu: '; p %_menu;
+
     my $input;
     while (1) {
 	system('clear') if $opts{clear};
 	say $opts{header} if defined $opts{header};
 
-	say join(' : ', sprintf("%2s", $_), @{$_menu{$_}}{qw{s str}}) for @keys;
+	say join(' : ', sprintf("%2s", $_), @{$_menu{$_}}{qw{s str}}) for @$keys;
 
 	print $opts{prompt};
 	chomp ($input = <STDIN>);
-	my %action = _parse_choice(\@keys, $input);
-	if (defined $action{msg}) {
-	    say 'invalid input' if -1 == $action{msg};
-	    last if 0 == $action{msg};
+
+	my ($first, @choices) = _pick_Input_parse($input, $keys, $opts{cmnds});
+
+	if ($first ~~ $keys) {
+	    if ($opts{presets}) {
+		for (@{$opts{presets}}) {
+		    $_menu{$_}{s} ^= $toggle;
+		    $_menu{$_}{order} = $seq++;
+		}
+		$opts{presets} = ();
+	    }
+	    for ($first, @choices) {
+		$_menu{$_}{s} ^= $toggle;
+		$_menu{$_}{order} = $seq++;
+	    }
+	} else {
+	    say 'invalid input' if -2 == $first;
+	    last unless $first;
 	    say for @{$opts{help}};
+	    print '<paused>...';
 	    my $dummy = <STDIN>;
-	}
-	for (@{$action{selections}}) {
-	    $_menu{$_}{s} ^= $toggle;
-	    $_menu{$_}{order} = $seq++;
 	}
     } continue {
 	last if (($max == grep {$_menu{$_}{s} eq $picked} keys %_menu) and ($input !~ /^all/i));
     }
-    my @found = sort {$_menu{$a}{order} <=> $_menu{$b}{order}} grep {$_menu{$_}{s} eq $picked} keys %_menu;
+    my @found = sort {$_menu{$b}{order} <=> $_menu{$a}{order}} grep {$_menu{$_}{s} eq $picked} keys %_menu;
+    map {$_--} @found unless $hash;
     my @rtn = @found <= $max ? @found : @found[0..$max-1];
     return wantarray ? @rtn : \@rtn;
 }

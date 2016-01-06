@@ -43,7 +43,7 @@ while (1) {
     my $ndx = 1;
     my %menu = map {$ndx++=>$_} sort keys %found_families; # an alphabetical sort of families
     my @keys = sort {$a <=> $b} keys %menu; # just sort the indices of %menu
-    my ($family) = Menu::Pick({header=>'pick a family'}, {%menu, keys=>\@keys});
+    my ($family) = Menu::pick({header=>'pick a family'}, {%menu, keys=>\@keys});
     last unless $family;
     $family = $found_families{$menu{$family}}; # this gets us back to hash key for msgs
     $msgs{$family} = $solver{$family}($msgs{$family});

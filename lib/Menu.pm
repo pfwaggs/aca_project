@@ -52,13 +52,15 @@ sub _pick_Options {
 }
 #ZZZ
 
-#AAA Pick
-sub Pick {
+#AAA pick
+sub pick {
     # hash_ref, data
-    my %opts = _pick_Options(shift);
+    my $type = ref $_[-1]; # this can be a HASH, ARRAY, or ''
+    my %data = $type ? _pick_Data(pop @_) : ();
+    my %opts = _pick_Options(ref $_[0] eq 'HASH' ? shift : {});
+    %data = _pick_Data(@_) unless keys %data;
+    my $hash = $type eq 'HASH';
 
-    my $hash = ref $_[0] eq 'HASH';
-    my %data = $hash ? %{$_[0]} : _pick_Data(@_);
     $opts{cmnds}{all} = $data{keys};
 
     my $keys = $data{keys};
@@ -69,7 +71,6 @@ sub Pick {
     my $seq = 1;
 
     my %_menu = map {$_ => {str=>$data{$_}, s=>' '}} @$keys;
-    map {$_++} @{$opts{presets}} unless $hash;
     for (@{$opts{presets}}) {
 	$_menu{$_}{s} ^= $toggle;
 	$_menu{$_}{order} = $seq++;

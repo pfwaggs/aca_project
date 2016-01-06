@@ -9,6 +9,7 @@ use Data::Printer;
 #use JSON::PP;
 
 use Stats;
+use Menu;
 
 # parse_action #AAA
 sub parse_action {
@@ -203,14 +204,14 @@ sub aristocrat_solver {
     my %msg_menu = map {$_=>$msgs{$_}{msg}[0]} keys %msgs;
     my @msgs_list = sort {$a<=>$b} keys %msg_menu;
     while (1) {
-	my ($msg) = Menu::Pick({header=>'pick a message'}, {%msg_menu, keys=>\@msgs_list});
+	my ($msg) = Menu::pick({header=>'pick a message'}, {%msg_menu, keys=>\@msgs_list});
 	last unless $msg;
 	$msgs{$msg}{stats} = {Stats::mono_stats($msgs{$msg}{msg})} unless exists $msgs{$msg}{stats};
 
 	while (1) {
 	    my %work_menu = (1=>'key recovery', 2=>'plaintext recovery');
 	    my $work_menu_keys = [1,2];
-	    my ($work) = Menu::Pick({header=>'which would you like to do? '}, {%work_menu, keys=>$work_menu_keys});
+	    my ($work) = Menu::pick({header=>'which would you like to do? '}, {%work_menu, keys=>$work_menu_keys});
 	    last unless $work;
 	    my %update = $work ? aristocrat_plaintext_recovery($msgs{$msg}) : aristocrat_key_recovery($msgs{$msg});
 	    if ($update{update}) {

@@ -43,7 +43,7 @@ for (@lines) {
             push @msg, $_;
         }
     } else {
-        my ($meta) = 1 < @meta ? Menu::Pick(@meta) : $meta[0];
+        my ($meta) = 1 < @meta ? Menu::Pick({},@meta) : $meta[0];
         my @meta_fields = split /\W/, $meta;
         my $key = pop @meta_fields;
         my $family = join('-',@meta_fields);

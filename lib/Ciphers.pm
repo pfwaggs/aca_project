@@ -11,7 +11,7 @@ use Data::Printer;
 use Stats;
 use Menu;
 
-# parse_action #AAA
+#AAA parse_action 
 sub parse_action {
     my %checks = %{shift @_};
     my $my_action   = 1 - ($checks{action} =~ s/quit//);
@@ -24,6 +24,9 @@ sub parse_action {
     }
     if ($checks{action} =~ s/stats//) {
 	$checks{show_stats} = 1 - $checks{show_stats};
+    }
+    if ($checks{action} =~ s/flip//) {
+	$checks{flip} = 1 - $checks{flip};
     }
     $checks{action} =~ s/^\s+|\s+$//g; # remove leading/trailing spaces
     if ($checks{action}) {
@@ -38,7 +41,7 @@ sub parse_action {
 }
 #ZZZ
 
-# monosubstitution #AAA
+#AAA monosubstitution 
 sub monosubstitution {
     my %data = %{shift @_};
     my $CIPHER = join('', keys $data{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -56,12 +59,12 @@ sub monosubstitution {
 }
 #ZZZ
 
-# commands #AAA
+#AAA commands 
 
 my %commands;
 %commands = (
 
-# order #AAA
+#AAA order 
     order => sub {
 	my %in = %{shift @_};
 	$in{order} = $in{option};
@@ -73,7 +76,7 @@ my %commands;
     },
 #ZZZ
 
-# rev #AAA
+#AAA rev 
     rev => sub {
 	my %in = %{shift @_};
 	$in{top} = [reverse @{$in{top}}];
@@ -82,7 +85,7 @@ my %commands;
     },
 #ZZZ
 
-# slide #AAA
+#AAA slide 
     slide => sub {
 	my %in = %{shift @_};
 	my %t = $in{order} eq 'key' ? %{$in{key}} : %{$in{val}};
@@ -97,7 +100,7 @@ my %commands;
     },
 #ZZZ
 
-# insert #AAA
+#AAA insert 
     insert => sub {
 	my %in = %{shift @_};
 	for (split /:/, uc $in{option} =~ s/^\s*|\s*$//gr) {
@@ -111,7 +114,7 @@ my %commands;
     },
 #ZZZ
 
-# keywords #AAA
+#AAA keywords 
     keyword => sub {
 	my %in = %{shift @_};
 	push @{$in{keywords}}, uc $in{option};
@@ -122,7 +125,7 @@ my %commands;
 );
 #ZZZ
 
-# aristocrat_key_recovery #AAA
+#AAA aristocrat_key_recovery 
 sub aristocrat_key_recovery {
     my %msg = %{shift @_};
     my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
@@ -158,28 +161,54 @@ sub aristocrat_key_recovery {
 }
 #ZZZ
 
-# aristocrat_plaintext_recovery #AAA
+#AAA _aristocrat_display_text 
+sub _aristocrat_display_text {
+    my $flip = shift;
+    my @top; my @bot;
+    if ($flip) {
+	@bot = @{shift @_};
+	@top = @{shift @_};
+    } else {
+	@top = @{shift @_};
+	@bot = @{shift @_};
+    }
+    while (my ($ndx, $top) = each @top) {
+	say $top;
+	say $bot[$ndx];
+	say '';
+    }
+}
+#ZZZ
+
+#AAA _aristocrat_display 
+sub _aristocrat_display {
+    my %config      = %{shift @_};
+    my %stats       = %{shift @_};
+    my @msg_encrypt = @{shift @_};
+    my @msg_decrypt = monosubstitution({state=>$config{state}, msg=>[@msg_encrypt]});
+
+    say join(' ', @{$stats{$config{stat_order}}{vals}}) if $config{show_stats};
+    my $fake_msg_encrypt = join(' ',@{$stats{$config{stat_order}}{keys}}); # fake_msg are the keys to stats
+    my $fake_msg_decrypt = join(' ',monosubstitution({state=>$config{state}, msg=>[$fake_msg_encrypt]})); # decrypt the generated fake message
+    _aristocrat_display_text($config{flip}, [$fake_msg_encrypt], [$fake_msg_decrypt]);
+    say '';
+    _aristocrat_display_text($config{flip}, \@msg_encrypt, \@msg_decrypt)
+}
+#ZZZ
+
+#AAA aristocrat_plaintext_recovery 
 sub aristocrat_plaintext_recovery {
     my %msg = %{shift @_};
     $msg{update} = 0;
-    my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, solved=>$msg{solved});
+    my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, flip=>0, solved=>$msg{solved});
     $bob{state} = defined $msg{state} ? $msg{state} : {};
-    my @cipher_msg = @{$msg{msg}}; #$bob{msg} = $msg{msg};
+    my @msg_encrypt = @{$msg{msg}}; #$bob{msg} = $msg{msg};
     my %stats = Stats::build_stat_indices($msg{stats}//{});
 
     while ($bob{action} and ! $bob{solved}) {
 	system('clear');
-	say join(' ', @{$stats{$bob{stat_order}}{vals}}) if $bob{show_stats};
-	say my $fake = join(' ', @{$stats{$bob{stat_order}}{keys}});
-	say for monosubstitution({state=>$bob{state}, msg=>[$fake]}); # pass the generated fake message to decrypt
-	say '';
-	my @decrypt = monosubstitution({state=>$bob{state}, msg=>[@cipher_msg]});
-	while (my ($ndx, $cipher) = each @cipher_msg) {
-	    say $cipher;
-	    say $decrypt[$ndx];
-	    say '';
-	}
-	print "cipher/plain pair? ";
+	_aristocrat_display(\%bob, \%stats, \@msg_encrypt);
+	print "encrypt/plain pair? ";
 	chomp($bob{action}=<STDIN>);
 	%bob = parse_action(\%bob);
     }
@@ -197,7 +226,7 @@ sub aristocrat_plaintext_recovery {
 }
 #ZZZ
 
-# aristocrat_solver #AAA
+#AAA aristocrat_solver 
 sub aristocrat_solver {
     my %msgs = %{shift @_};
 

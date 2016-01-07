@@ -27,10 +27,16 @@ sub _pick_Input_parse {
 
 #AAA _pick_Data
 sub _pick_Data {
-    my @data = ref $_[0] eq 'ARRAY' ?  @{shift @_} : (@_);
-    my $ndx = 1;
-    my %rtn = map {$ndx++ => $_} @data;
-    $rtn{keys} = [sort keys %rtn];
+    my $type = ref $_[0];
+    my %rtn;
+    if ($type eq 'HASH') {
+	%rtn = %{shift @_};
+    } else {
+	my @data = $type eq 'ARRAY' ? @{shift @_} : (@_);
+	my $ndx = 1;
+	%rtn = map {$ndx++ => $_} @data;
+	$rtn{keys} = [sort keys %rtn];
+    }
     return %rtn;
 }
 #ZZZ

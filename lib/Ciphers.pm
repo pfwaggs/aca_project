@@ -238,11 +238,10 @@ sub aristocrat_solver {
 	$msgs{$msg}{stats} = {Stats::mono_stats($msgs{$msg}{msg})} unless exists $msgs{$msg}{stats};
 
 	while (1) {
-	    my %work_menu = (1=>'key recovery', 2=>'plaintext recovery');
-	    my $work_menu_keys = [1,2];
-	    my ($work) = Menu::pick({header=>'which would you like to do? '}, {%work_menu, keys=>$work_menu_keys});
-	    last unless $work;
-	    my %update = $work ? aristocrat_plaintext_recovery($msgs{$msg}) : aristocrat_key_recovery($msgs{$msg});
+	    my @work_menu = qw/plaintext key/;
+	    my ($work) = Menu::pick({header=>'which would you like to recover? '}, @work_menu);
+	    last if $work < 0;
+	    my %update = $work ? aristocrat_key_recovery($msgs{$msg}) : aristocrat_plaintext_recovery($msgs{$msg});
 	    if ($update{update}) {
 		delete $update{update};
 		$msgs{$msg} = {%update};

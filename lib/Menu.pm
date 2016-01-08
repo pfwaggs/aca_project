@@ -60,6 +60,8 @@ sub _pick_Options {
 	help => ['no help available'],
     );
     %rtn = (%rtn, %{shift @_}) if ref $_[0] eq 'HASH';
+    my $width = length($rtn{yes} lt $rtn{no} ? $rtn{no} : $rtn{yes});
+    map {$_ = sprintf "%*1s", $width, $_} @rtn{qw/yes no/};
     $rtn{toggle} = $rtn{yes}^$rtn{no};
     return wantarray ? %rtn : \%rtn;
 }

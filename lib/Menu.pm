@@ -124,4 +124,21 @@ sub pick {
 }
 #ZZZ
 
+# #AAA simple 
+sub simple {
+    my $str = shift;
+    my $rtn;
+    while (1) {
+	system('clear');
+	my $ndx = 1;
+	say join(' : ',$ndx++, $_) for @_;
+	print $str;
+	chomp($rtn=<STDIN>);
+	next if $rtn =~ /\D/;
+	last if $rtn and $rtn <= @_;
+    }
+    return $rtn-1;
+}
+#ZZZ
+
 1;

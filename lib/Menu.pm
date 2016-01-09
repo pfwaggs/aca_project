@@ -127,11 +127,13 @@ sub pick {
 # #AAA simple 
 sub simple {
     my $str = shift;
+    my $max = 1 + int log(@_)/log(10);
+    my $ndx = 1;
+    my @input = map {sprintf "%*s : %s", $max, $ndx++, $_} @_;
     my $rtn;
     while (1) {
 	system('clear');
-	my $ndx = 1;
-	say join(' : ',$ndx++, $_) for @_;
+	say for @input;
 	print $str;
 	chomp($rtn=<STDIN>);
 	next if $rtn =~ /\D/;

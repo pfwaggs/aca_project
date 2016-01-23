@@ -25,7 +25,7 @@ use Stats;
 #ZZZ
 
 my %solver = (
-    A   => \&Ciphers::aristocrat_solver,
+    A   => \&Ciphers::monoalphabetic_solver,
     HDL => \&Ciphers::headline_solver,
 );
 

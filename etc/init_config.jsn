@@ -1,0 +1,16 @@
+{
+    "template" : null,
+    "location" : null,
+    "recovery_line" : [
+	"top",
+	"bottom"
+    ],
+    "stats_present" : [
+	"yes",
+	"no"
+    ],
+    "stats_order" : [
+	"alpha",
+	"numeric"
+    ]
+}

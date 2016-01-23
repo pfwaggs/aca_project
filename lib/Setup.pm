@@ -11,6 +11,12 @@ use JSON::PP;
 our $json_pp = JSON::PP->new->utf8;
 use Data::Printer;
 
+our @ETC;
+BEGIN {
+    our @ETC;
+    @ETC = map {"$_"} grep {path($_)->is_dir} map {path("$_/etc")->realpath} ('.', '..');
+}
+
 use Menu;
 use Utilities;
 
@@ -20,13 +26,13 @@ my $nl = "\n";
 
 # init_Config AAA
 sub init_Config {
-    my $init_config_file = 'init_config.jsn'; # we want to create default config files for projects
+    my ($init_config_file) = grep {path($_)->is_file} map {"$_/init_config.jsn"} @ETC; # we want to create default config files for projects
     my %rtn;
-    if (path($init_config_file)->is_file) {
+    if (defined $init_config_file) {
 	my %init_config = Utilities::read_Json($init_config_file);
 	%rtn = map {$_ => $init_config{$_}[0]} keys %init_config;
 	$rtn{template} = join('/', Path::Tiny->cwd(), $init_config_file);
-	$rtn{location} = join('/', Path::Tiny->cwd(), "temp_config.jsn");
+	$rtn{location} = path("~/.aca_config.jsn")->realpath;
     } else {
 	warn 'no default config file found. please configure one.'.$nl;
     }

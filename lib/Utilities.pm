@@ -89,4 +89,40 @@ sub On_width {
 #}
 ##ZZZ
 
+sub mo2 {
+    my @aoa = @{shift @_};
+    my %max;
+    # we convert entries in 2d matrix to lengths of the entries
+    for my $row (@aoa) {
+	while (my ($ndx, $val) = each (@$row)) {
+	    push @{$max{$ndx}}, length $val;
+	}
+    }
+    # over all the columns find the maximal element for that column
+    $max{$_} = pop [sort {$a <=> $b} @{$max{$_}}] for keys %max;
+    # adjust each element in the original matrix to fit in the maximal size
+    # for that column
+    for my $row (@aoa) {
+	while (my ($ndx, $val) = each (@$row)) {
+	    $val = sprintf "%*s", $max{$ndx}, $val;
+	    $row->[$ndx] = $val;
+	}
+    }
+    return @aoa;
+}
+
+sub read_Json {
+    my $json = JSON::PP->new->utf8;
+    my $str = join(' ', path(shift)->lines({chomp=>1}));
+    my %config = %{$json->decode($str)};
+    return %config;
+}
+
+sub write_Json {
+    my $json = JSON::PP->new->utf8;
+    push my @str, $json->pretty->encode(shift);
+    path(shift)->spew(@str);
+}
+
+
 1;

@@ -125,8 +125,8 @@ my %commands;
 );
 #ZZZ
 
-#AAA aristocrat_key_recovery 
-sub aristocrat_key_recovery {
+#AAA monoalphabetic_key_recovery 
+sub monoalphabetic_key_recovery {
     my %msg = %{shift @_};
     my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
 
@@ -161,8 +161,8 @@ sub aristocrat_key_recovery {
 }
 #ZZZ
 
-#AAA _aristocrat_display_text 
-sub _aristocrat_display_text {
+#AAA _monoalphabetic_display_text 
+sub _monoalphabetic_display_text {
     my $flip = shift;
     my @top; my @bot;
     if ($flip) {
@@ -180,8 +180,8 @@ sub _aristocrat_display_text {
 }
 #ZZZ
 
-#AAA _aristocrat_display 
-sub _aristocrat_display {
+#AAA _monoalphabetic_display 
+sub _monoalphabetic_display {
     my %config      = %{shift @_};
     my %stats       = %{shift @_};
     my @msg_encrypt = @{shift @_};
@@ -190,14 +190,14 @@ sub _aristocrat_display {
     say join(' ', @{$stats{$config{stat_order}}{vals}}) if $config{show_stats};
     my $fake_msg_encrypt = join(' ',@{$stats{$config{stat_order}}{keys}}); # fake_msg are the keys to stats
     my $fake_msg_decrypt = join(' ',monosubstitution({state=>$config{state}, msg=>[$fake_msg_encrypt]})); # decrypt the generated fake message
-    _aristocrat_display_text($config{flip}, [$fake_msg_encrypt], [$fake_msg_decrypt]);
+    _monoalphabetic_display_text($config{flip}, [$fake_msg_encrypt], [$fake_msg_decrypt]);
     say '';
-    _aristocrat_display_text($config{flip}, \@msg_encrypt, \@msg_decrypt)
+    _monoalphabetic_display_text($config{flip}, \@msg_encrypt, \@msg_decrypt)
 }
 #ZZZ
 
-#AAA aristocrat_plaintext_recovery 
-sub aristocrat_plaintext_recovery {
+#AAA monoalphabetic_plaintext_recovery 
+sub monoalphabetic_plaintext_recovery {
     my %msg = %{shift @_};
     $msg{update} = 0;
     my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, flip=>0, solved=>$msg{solved});
@@ -207,7 +207,7 @@ sub aristocrat_plaintext_recovery {
 
     while ($bob{action} and ! $bob{solved}) {
 	system('clear');
-	_aristocrat_display(\%bob, \%stats, \@msg_encrypt);
+	_monoalphabetic_display(\%bob, \%stats, \@msg_encrypt);
 	print "encrypt/plain pair? ";
 	chomp($bob{action}=<STDIN>);
 	%bob = parse_action(\%bob);
@@ -226,8 +226,8 @@ sub aristocrat_plaintext_recovery {
 }
 #ZZZ
 
-#AAA aristocrat_solver 
-sub aristocrat_solver {
+# #AAA monoalphabetic_solver 
+sub monoalphabetic_solver {
     my %msgs = %{shift @_};
 
     my %msg_menu = map {$_=>$msgs{$_}{msg}[0]} keys %msgs;
@@ -241,7 +241,7 @@ sub aristocrat_solver {
 	    my @work_menu = qw/plaintext key/;
 	    my ($work) = Menu::pick({header=>'which would you like to recover? '}, @work_menu);
 	    last if $work < 0;
-	    my %update = $work ? aristocrat_key_recovery($msgs{$msg}) : aristocrat_plaintext_recovery($msgs{$msg});
+	    my %update = $work ? monoalphabetic_key_recovery($msgs{$msg}) : monoalphabetic_plaintext_recovery($msgs{$msg});
 	    if ($update{update}) {
 		delete $update{update};
 		$msgs{$msg} = {%update};

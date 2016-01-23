@@ -6,6 +6,12 @@ use warnings;
 use v5.18;
 use experimental qw(smartmatch autoderef);
 
+# an input line can consist of a command (quit, help, config, ...) or some
+# specific things to do withing context of problem such as substitutions
+# (cp:cp:cp...)  so the idea is to take the input line, parse it for commands
+# first (and act on the commands, fi-itr with fifo coming later) then if no
+# commands look for actions.
+
 #AAA _pick_Input_parse
 sub _pick_Input_parse {
     # the default value (null input) is to quit(-2) the current menu.  else it must be
@@ -132,14 +138,15 @@ sub simple {
     my @input = map {sprintf "%*s : %s", $max, $ndx++, $_} @_;
     my $rtn;
     while (1) {
-	system('clear');
+ 	system('clear');
 	say for @input;
 	print $str;
 	chomp($rtn=<STDIN>);
+	last if $rtn =~ /^\s*$/;
 	next if $rtn =~ /\D/;
-	last if $rtn and $rtn <= @_;
+	last if (1 <= $rtn and $rtn <= @_);
     }
-    return $rtn-1;
+    return ($rtn ? $rtn-1 : -1);
 }
 #ZZZ
 

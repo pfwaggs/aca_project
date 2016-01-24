@@ -114,8 +114,15 @@ sub mo2 {
 sub read_Json {
     my $json = JSON::PP->new->utf8;
     my $str = join(' ', path(shift)->lines({chomp=>1}));
-    my %config = %{$json->decode($str)};
-    return %config;
+    $str = $json->decode($str);
+    my $ref = ref $str;
+    if ($ref eq 'HASH') {
+	return wantarray ? %$str : $str;
+    } elsif ($ref eq 'ARRAY') {
+	return wantarray ? @$str : $str;
+    } else {
+	return $str;
+    }
 }
 
 sub write_Json {

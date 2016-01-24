@@ -26,15 +26,22 @@ my $nl = "\n";
 
 # init_Config AAA
 sub init_Config {
-    my ($init_config_file) = grep {path($_)->is_file} map {"$_/init_config.jsn"} @ETC; # we want to create default config files for projects
+    my $file = shift // "~/.aca_config.jsn";
     my %rtn;
-    if (defined $init_config_file) {
-	my %init_config = Utilities::read_Json($init_config_file);
-	%rtn = map {$_ => $init_config{$_}[0]} keys %init_config;
-	$rtn{template} = join('/', Path::Tiny->cwd(), $init_config_file);
-	$rtn{location} = path("~/.aca_config.jsn")->realpath;
+    if (path($file)->is_file) {
+	%rtn = Utilities::read_Json($file);
     } else {
-	warn 'no default config file found. please configure one.'.$nl;
+	my @ETC = map {"$_"} grep {path($_)->is_dir} map {path("$_/etc")->realpath} ('.', '..');
+	my ($init_config_file) = grep {path($_)->is_file} map {"$_/aca_config.jsn"} @ETC; # we want to create default config files for projects
+	if (defined $init_config_file) {
+	    my %init_config = Utilities::read_Json($init_config_file);
+	    %rtn = map {$_ => $init_config{$_}[0]} keys %init_config;
+	    $rtn{template} = $init_config_file;
+	    $rtn{location} = path("~/.aca_config.jsn")->realpath->stringify;
+	    Utilities::write_Json(\%rtn, $rtn{location});
+	} else {
+	    warn 'no default config file found. please configure one.'.$nl;
+	}
     }
     return %rtn;
 }

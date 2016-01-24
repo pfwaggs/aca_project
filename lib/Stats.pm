@@ -9,20 +9,18 @@ use Path::Tiny;
 use JSON::PP;
 
 
-# build_stat_indices #AAA
-sub build_stat_indices {
+# get_Stat_order #AAA
+sub get_Stat_order {
+    my %config = %{shift @_};
     my %stats = %{shift @_};
     my %freq = %{$stats{freqs}};
-    my %rtn;
-    my @keys = sort keys %freq;
-    $rtn{alpha}{keys} = [map {sprintf "%2s", $_} @keys];
-    $rtn{alpha}{vals} = [map {sprintf "%2s", $_} @freq{@keys}];
-
-    @keys = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$freq{$_}.".ord($_)} keys %freq;
-    $rtn{number}{keys} = [map {sprintf "%2s", $_} @keys];
-    $rtn{number}{vals} = [map {sprintf "%2s", $_} @freq{@keys}];
-
-    return wantarray ? %rtn : \%rtn;
+    my @rtn;
+    if ($config{stats_order} eq 'alpha') {
+	@rtn = sort keys %freq;
+    } else {
+	@rtn = map {s/\d+\.//;chr($_)} sort {$b <=> $a} map {"$freq{$_}.".ord($_)} keys %freq;
+    }
+    return @rtn;
 }
 #ZZZ
 
@@ -44,8 +42,8 @@ sub show_mono_stats_old {
 }
 #ZZZ
 
-# mono_stats #AAA
-sub mono_stats {
+# mono_Stats #AAA
+sub mono_Stats {
     my @txt = @{shift @_};
     my %counts;
     for (map {s/\W//gr} @txt) {

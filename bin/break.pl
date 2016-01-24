@@ -17,14 +17,19 @@ BEGIN {
     push @INC, grep {! ($_ ~~ @INC)} @libs;
 }
 use Menu;
+use Setup;
+use Ciphers;
 
 #ZZZ
 
 # read in names mapping jsn file
 my $jpp_in = JSON::PP->new->utf8;
-my ($name_map_file) = map {path("$_/names.jsn")->realpath} grep {path("$_/names.jsn")->is_file} qw(. ../etc);
+my ($name_map_file) = map {path("$_/names.jsn")->realpath} grep {path("$_/names.jsn")->is_file} qw(./etc ../etc);
 my %name_map = %{$jpp_in->decode(join(' ',path($name_map_file)->lines({chomp=>1})))};
 my $name_map_max = pop [sort {$a <=> $b} map {length $_} values %name_map];
+
+our %config;
+%config = Setup::init_Config() unless keys %config;
 
 # #AAA display 
 sub display {
@@ -79,7 +84,7 @@ sub process_family {
     while (1) {
         last unless exists $msg{msg};
         while (1) {
-            &$solver(%msg);
+            %msg = &$solver(%msg);
             print 'do something> ';
             chomp(my $input=<STDIN>);
             last if $input eq 'quit';

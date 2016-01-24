@@ -1,11 +1,11 @@
 {
     "template" : null,
     "location" : null,
-    "recovery_line" : [
-	"top",
-	"bottom"
+    "top_line" : [
+	"decrypt",
+	"encrypt"
     ],
-    "stats_present" : [
+    "show_stats" : [
 	"yes",
 	"no"
     ],

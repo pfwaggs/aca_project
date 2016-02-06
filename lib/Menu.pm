@@ -6,147 +6,135 @@ use warnings;
 use v5.18;
 use experimental qw(smartmatch autoderef);
 
-# an input line can consist of a command (quit, help, config, ...) or some
-# specific things to do withing context of problem such as substitutions
-# (cp:cp:cp...)  so the idea is to take the input line, parse it for commands
-# first (and act on the commands, fi-itr with fifo coming later) then if no
-# commands look for actions.
-
-#AAA _pick_Input_parse
-sub _pick_Input_parse {
-    # the default value (null input) is to quit(-2) the current menu.  else it must be
-    # some key found in the commands hash or a valid element in commands{all} list
-    # failing that, we have no idea what was given so we return -1
-    my %commands = %{shift @_};
-    my @in = split /\s+/, shift//' ';
-    push @in, 'quit' unless @in;
-    my @_keys = @{$commands{all}};
-
-    my @rtn = ();
-    if (my ($command) = grep {$_ ~~ %commands} @in) {
-	push @rtn, ref $commands{$command} eq 'ARRAY' ? @{$commands{$command}} : $commands{$command};
-    } elsif (@_keys = grep {$_ ~~ @_keys} @in) {
-	push @rtn, @_keys;
-    } else {
-	push @rtn, -1;
-    }
-
-    return wantarray ? @rtn : \@rtn;
-}
-#ZZZ
-
-#AAA _pick_Data
-sub _pick_Data {
-    my $type = ref $_[0];
+# ary_To_hash #AAA
+sub ary_To_hash {
     my %rtn;
-    if ($type eq 'HASH') {
-	%rtn = %{shift @_};
-    } else {
-	my @data = $type eq 'ARRAY' ? @{shift @_} : (@_);
-	my $ndx = 1;
-	%rtn = map {$ndx++ => $_} @data;
-	$rtn{keys} = [sort keys %rtn];
+    while (my ($ndx, $val) = each (@_)) {
+	$rtn{1+$ndx} = $val;
     }
     return %rtn;
 }
 #ZZZ
 
-#AAA _pick_Options
-sub _pick_Options {
-    # {config params}, {%data, keys=>[], (help=>[])}
-
-    my %rtn = (
-	header  => undef,
-	prompt  => 'pick lines: ',
-	clear   => 1,
-	max     => 1,
-	presets => [],
-	yes => '*',
-	no  => ' ',
-	help => ['no help available'],
-    );
-    %rtn = (%rtn, %{shift @_}) if ref $_[0] eq 'HASH';
-    my $width = length($rtn{yes} lt $rtn{no} ? $rtn{no} : $rtn{yes});
-    map {$_ = sprintf "%*1s", $width, $_} @rtn{qw/yes no/};
-    $rtn{toggle} = $rtn{yes}^$rtn{no};
-    return wantarray ? %rtn : \%rtn;
+# max_Length_hash_Keys #AAA
+sub max_Length_hash_Keys {
+    my %data = %{shift @_};
+    return pop [sort {$a <=> $b} map {length $_} keys %data];
 }
 #ZZZ
 
-#AAA pick
-sub pick {
-    # hash_ref, data
-    my $type = ref $_[-1]; # this can be a HASH, ARRAY, or ''
-    my $hash = $type eq 'HASH';
-    my $tmp = pop @_ if $type;
-    my %opts = _pick_Options(ref $_[0] eq 'HASH' ? shift : {});
-    my %data = _pick_Data($type ? $tmp : (@_));
+# hash2 #AAA
+sub hash2 {
+    my %in_hash = %{shift @_};
+    my %key_hash;
+    my $ndx = 1;
+    while (my ($key, $val) = each (%in_hash)) {
+	$key_hash{$ndx++} = $key;
+    }
+    return %key_hash;
+}
+#ZZZ
 
-    my %cmnds = (quit => -2, help => -3);
-    my $keys = $data{keys};
-    my $max = $opts{max}//@{$data{keys}};
+# simple AAA
+sub simple2 {
+    my %input = (@_);
+    my %data = %{$input{data}};
+    my %key_hash = hash2(\%data);
 
-    my %_menu = map {$_ => {str=>$data{$_}, s=>$opts{no}}} @$keys;
+    my $default = $input{default}//undef;
+    my $prompt = ($default ~~ %data) ? "pick (default:=$data{$default})> " : 'pick >';
+
+    my $width = 1 + int log(keys %key_hash)/log(10);
+    my @sorted_key_hash = sort {$a <=> $b} keys %key_hash;
+    my @menu = map {sprintf "%*s : %s", $width, $_, $data{$key_hash{$_}}} @sorted_key_hash;
+    my $rtn;
+    {
+	system('clear');
+	say for @menu;
+	print $prompt;
+	chomp($rtn=<STDIN>);
+	last if $rtn =~ /^\s*$/;
+	redo if $rtn =~ /\D/;
+	($rtn//$default ~~ @sorted_key_hash) ? last : redo;
+    }
+    return ($rtn//$default ~~ @sorted_key_hash ? $key_hash{$rtn} : $default);
+}
+#ZZZ
+
+
+sub simple {
+    my %input = (@_);
+    my @data = @{$input{data}};
+    my @keys = (0..@data-1);
+    my $default = $input{default}//0;
+    my $prompt = $input{prompt}//($default-1 ~~ [keys @data] ? "pick (default:=$data[$default-1])> " : 'pick > ');
+    my $width = 1 + int log(@data)/log(10);
+    my @menu = map {sprintf "%*s : %s", $width, 1+$_, $data[$_]} keys @data; # visually increment index
+    say STDERR for @menu;
+    my $rtn;
+    {
+	print STDERR $prompt;
+	chomp($rtn=<STDIN>);
+	last if $rtn =~ /^\s*$/;
+	($rtn-1 ~~ [keys @data]) ? last : redo;
+    }
+    return ($rtn =~ /\d/ ? $rtn : $default) - 1 # correct the index value
+}
+
+
+# complex #AAA
+sub complex {
+    my %input = (@_);
+    my %defaults = (
+	header       => undef,
+	prompt       => 'pick lines: ',
+	clear_screen => 1,
+	max_return   => 1,
+	presets      => [],
+	yes          => '*',
+	no           => ' ',
+    );
+    my %config = (%defaults, exists $input{config} ? %{$input{config}} : ());
+    my @keys = @{$input{keys}};
+    my %data = %{$input{data}};
+    my $toggle = $config{yes}^$config{no};
+    my $max_return = $config{max_return}//@keys;
+
+    my ($max_width) = sort {$b <=> $a} map {length $_} @keys;
+    my %_menu = map {$_ => { key=>sprintf("%*s",$max_width,$_), str=>$data{$_}, s=>$config{no}}} @keys;
     my $seq = 1;
-    for (@{$opts{presets}}) {
-	$_menu{$_}{s} ^= $opts{toggle};
+    for (@{$config{presets}}) {
+	$_menu{$_}{s} ^= $toggle;
 	$_menu{$_}{order} = $seq++;
     }
 
-    my $input;
-    while (1) {
-	system('clear') if $opts{clear};
-	say $opts{header} if defined $opts{header};
-	say join(' : ', sprintf("%2s", $_), @{$_menu{$_}}{qw{s str}}) for @$keys;
-	print $opts{prompt};
-	chomp ($input = <STDIN>);
-	my ($first, @choices) = _pick_Input_parse({%cmnds, all=>$data{keys}}, $input);
-	if ($first ~~ $keys) {
-	    if ($opts{presets}) {
-		for (@{$opts{presets}}) {
-		    $_menu{$_}{s} ^= $opts{toggle};
-		    $_menu{$_}{order} = $seq++;
-		}
-		$opts{presets} = ();
+    {
+	my @choices;
+	system('clear') if $config{clear_screen};
+	say $config{header} if defined $config{header};
+	say join(' : ', @{$_menu{$_}}{qw{key s str}}) for @keys;
+	print $config{prompt};
+	chomp(@choices = grep {$_ ~~ ['all', @keys]} split /\s+/, <STDIN>);
+	if (exists $config{presets} and @choices) {
+	    for (@{$config{presets}}) {
+		$_menu{$_}{s} ^= $toggle;
+		delete $_menu{$_}{order};
 	    }
-	    for ($first, @choices) {
-		$_menu{$_}{s} ^= $opts{toggle};
-		$_menu{$_}{order} = $seq++;
-	    }
+	    $seq = 1;
+	    $config{presets} = ();
 	} else {
-	    say 'invalid input' if -1 == $first; # -1 is invalid input
-	    last if -2 == $first; # -2 is quit
-	    say for @{$opts{help}};
-	    print '<paused>...';
-	    my $dummy = <STDIN>;
+	    last if ($max_return <= grep {$_menu{$_}{s} eq $config{yes}} keys %_menu) and ! ('all' ~~ @choices);
+	    redo unless @choices;
 	}
-    } continue {
-	last if (($max == grep {$_menu{$_}{s} eq $opts{yes}} keys %_menu) and ($input !~ /^all/i));
+	for ('all' ~~ @choices ? @keys : @choices) {
+	    $_menu{$_}{s} ^= $toggle;
+	    $_menu{$_}{order} = $seq++;
+	}
+	(($max_return <= grep {$_menu{$_}{s} eq $config{yes}} keys %_menu) and ! ('all' ~~ @choices)) ? last : redo;
     }
-    my @found = sort {$_menu{$b}{order} <=> $_menu{$a}{order}} grep {$_menu{$_}{s} eq $opts{yes}} keys %_menu;
-    map {$_--} @found unless $hash;
-    my @rtn = @found <= $max ? @found : @found[0..$max-1];
-    return wantarray ? @rtn : \@rtn;
-}
-#ZZZ
-
-# #AAA simple 
-sub simple {
-    my $str = shift;
-    my $max = 1 + int log(@_)/log(10);
-    my $ndx = 1;
-    my @input = map {sprintf "%*s : %s", $max, $ndx++, $_} @_;
-    my $rtn;
-    while (1) {
- 	system('clear');
-	say for @input;
-	print $str;
-	chomp($rtn=<STDIN>);
-	last if $rtn =~ /^\s*$/;
-	next if $rtn =~ /\D/;
-	last if (1 <= $rtn and $rtn <= @_);
-    }
-    return ($rtn ? $rtn-1 : -1);
+    my @found = sort {$_menu{$b}{order} <=> $_menu{$a}{order}} grep {$_menu{$_}{s} eq $config{yes}} @keys;
+    my @rtn = @found <= $max_return ? @found : @found[0..$max_return-1];
+    return reverse @rtn;
 }
 #ZZZ
 

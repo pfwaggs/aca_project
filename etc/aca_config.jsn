@@ -12,5 +12,6 @@
     "stats_order" : [
 	"alpha",
 	"numeric"
-    ]
+    ],
+    "display" : "stats recovery msg"
 }

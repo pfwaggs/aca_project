@@ -6,6 +6,7 @@
 use warnings;
 use strict;
 use v5.18;
+use experimental qw(smartmatch);
 
 use Path::Tiny;
 use JSON::PP;
@@ -17,7 +18,7 @@ BEGIN {
     push @INC, grep {! ($_ ~~ @INC)} @libs;
 }
 use Menu;
-use Setup;
+#use Setup;
 use Ciphers;
 
 #ZZZ
@@ -27,9 +28,6 @@ my $jpp_in = JSON::PP->new->utf8;
 my ($name_map_file) = map {path("$_/names.jsn")->realpath} grep {path("$_/names.jsn")->is_file} qw(./etc ../etc);
 my %name_map = %{$jpp_in->decode(join(' ',path($name_map_file)->lines({chomp=>1})))};
 my $name_map_max = pop [sort {$a <=> $b} map {length $_} values %name_map];
-
-our %config;
-%config = Setup::init_Config() unless keys %config;
 
 # #AAA display 
 sub display {
@@ -41,7 +39,7 @@ sub display {
 # #AAA %solvers 
 # want to abstract this external to script
 my %solvers = (
-    A => \&Ciphers::monoalphabetic_solver,
+    A => \&Ciphers::Mono::mono,
     default => \&display,
 );
 #ZZZ
@@ -59,7 +57,7 @@ sub get_family {
         push @menu, sprintf "%*s : (%d/%d)", $name_map_max, $name_map{$key}//$key, $solved, scalar @count;
     }
 
-    my ($choice) = Menu::simple('pick a family> ', @menu);
+    my $choice = Menu::simple(prompt=>'pick a family> ', data=>\@menu);
     return -1 == $choice ? () : ($solvers{$keys[$choice]}//$solvers{default}, %{$hash{$keys[$choice]}});
 }
 #ZZZ
@@ -71,26 +69,28 @@ sub get_msg {
     my $max = pop [sort {$a <=> $b} map {length $_} @message_numbers];
     my @menu;
     push @menu, sprintf "%*s : %s", $max, $_, $messages{$_}{msg}[0] for @message_numbers;
-    my ($choice) = Menu::simple('pick a message> ', @menu);
+    my ($choice) = Menu::simple(prompt=>'pick a message> ', data=>\@menu);
     return -1 == $choice ? () : (%{$messages{$message_numbers[$choice]}});
 }
 #ZZZ
 
 # #AAA process_family 
 sub process_family {
-    my %input = %{shift @_};
-    my $solver = shift;
-    my %msg = get_msg(\%input);
-    while (1) {
-        last unless exists $msg{msg};
-        while (1) {
+    my %given = (@_);
+    my $solver = $given{solver};
+    my %msg = get_msg($given{family});
+    warn 'process_family';
+    p %msg;
+    die 'oops';
+    while ('msg' ~~ %msg) {
+        {
             %msg = &$solver(%msg);
             print 'do something> ';
-            chomp(my $input=<STDIN>);
-            last if $input eq 'quit';
+            chomp(my $response=<STDIN>);
+            $response eq 'quit' ? last : redo;
         }
-        %msg = get_msg(\%input);
-    }
+        %msg = get_msg($given{family});
+    };
 }
 #ZZZ
 
@@ -98,10 +98,9 @@ sub process_family {
 my $input_file = shift;
 my %msgs = %{$jpp_in->decode(join(' ',path($input_file)->lines({chomp=>1})))};
 
-while (1) {
+{
     my ($solver, %family) = get_family(\%msgs);
-    process_family(\%family, $solver);
-    my ($rinse) = Menu::simple('continue? ', 'no', 'yes');
-    (1 == $rinse) ? next : last;
+    process_family(solver=>$solver, family=>\%family);
+    Menu::simple(prompt=>'continue? ', ['no', 'yes']) ? redo : last;
 }
 # we can add code here to save work.  temp file or live data?

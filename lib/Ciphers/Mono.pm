@@ -3,63 +3,18 @@ package Ciphers::Mono;
 use strict;
 use warnings;
 use v5.18;
+use experimental qw(smartmatch);
 
 use Data::Printer;
 #use Path::Tiny;
 #use JSON::PP;
 
-use Stats;
-use Menu;
 use Setup;
+our %config = Setup::init_Config() unless keys %config; #this should be the instantiation
 
-# parse_action AAA
-sub parse_action {
-    my %checks = %{shift @_};
-    my $my_action   = 1 - ($checks{action} =~ s/quit//);
-    if ($checks{action} =~ s/(number|alpha)//) {
-	$checks{stat_order} = $1;
-    }
-    if ($checks{action} =~ s/solved//) {
-	$checks{solved} = 1;
-	$my_action = 0; 
-    }
-    if ($checks{action} =~ s/stats//) {
-	$checks{show_stats} = 1 - $checks{show_stats};
-    }
-    if ($checks{action} =~ s/flip//) {
-	$checks{flip} = 1 - $checks{flip};
-    }
-    $checks{action} =~ s/^\s+|\s+$//g; # remove leading/trailing spaces
-    if ($checks{action}) {
-	for (split /:/, $checks{action}) {
-	    next unless length $_ le 2;
-	    my ($f, $s) = split //, uc $_;
-	    $checks{state}{$f} = $s =~ /\w/ ? $s : ' ';
-	}
-    }
-    $checks{action} = $my_action;
-    return wantarray ? %checks : \%checks;
-}
-#ZZZ
-
-# monosubstitution AAA
-sub monosubstitution {
-    my %data = %{shift @_};
-    my $CIPHER = join('', keys $data{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    my $plain = lc join('', values $data{state})//'abcdefghijklmnopqrstuvwxyz';
-
-    my @rtn;
-    for (@{$data{msg}}) {
-	my $line = $_;
-	eval "\$line =~ tr/$CIPHER/$plain/" if $CIPHER;
-	$line =~ s/[[:upper:]]/ /g;
-	eval "\$line =~ tr/$plain/\U$plain/" if $plain;
-	push @rtn, $line;
-    }
-    return wantarray ? @rtn : \@rtn;
-}
-#ZZZ
-
+use Menu;
+use Stats;
+    
 # commands AAA
 
 my %commands;
@@ -126,114 +81,185 @@ my %commands;
 );
 #ZZZ
 
-# monoalphabetic_key_recovery AAA
-sub monoalphabetic_key_recovery {
-    my %msg = %{shift @_};
-    my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
-
-    my $commands_regex = join('|', map {"($_)"} ('quit', keys %commands));
-    $commands_regex = qr/$commands_regex/;
-    while (1) {
-  	system('clear');
-	say "order = $bob{order}";
-	say join(' ', 'key :', @{$bob{top}});
-	say join(' ', 'val :', @{$bob{bottom}});
-	if (exists $bob{keywords}) {
-	    say 'keywords :';
-	    say "\t$_" for @{$bob{keywords}};
-	}
-	print "command? ";
-	chomp(my $reply = <STDIN>);
-	$reply =~ s/\b($commands_regex)\b//;
-	my $cmd = $1;
-	last if $cmd eq 'quit';
-	next unless exists $commands{$cmd};
-	$bob{option} = $reply =~ s/^\s*|\s*$//r;
-	%bob = $commands{$cmd}(\%bob);
-    }
-    print "update? ";
-    chomp(my $reply = <STDIN>);
-    $bob{update} = $reply =~ /^y/i;
-    if ($bob{update} and exists $bob{keywords}) {
-	$msg{keywords} = [@{$bob{keywords}}];
-	$msg{update} = 1;
-    }
-    return wantarray ? %msg : \%msg;
-}
-#ZZZ
-
-## delete this later #AAA
+# delete this later #AAA
 #
-### _monoalphabetic_display_text AAA
-##sub _monoalphabetic_display_text {
-##    my $flip = shift;
-##    my @top; my @bot;
-##    if ($flip) {
-##	@bot = @{shift @_};
-##	@top = @{shift @_};
-##    } else {
-##	@top = @{shift @_};
-##	@bot = @{shift @_};
-##    }
-##    while (my ($ndx, $top) = each @top) {
-##	say $top;
-##	say $bot[$ndx];
-##	say '';
-##    }
-##}
-###ZZZ
+## monoalphabetic_key_recovery AAA
+#sub monoalphabetic_key_recovery {
+#    my %msg = %{shift @_};
+#    my %bob = $commands{order}({option => 'key', key => $msg{state}, val => {reverse %{$msg{state}}}});
 #
-### _monoalphabetic_display AAA
-##sub _monoalphabetic_display {
-##    my %config      = %{shift @_};
-##    my %stats       = %{shift @_};
-##    my @msg_encrypt = @{shift @_};
-##    my @msg_decrypt = monosubstitution({state=>$config{state}, msg=>[@msg_encrypt]});
-##
-##    say join(' ', @{$stats{$config{stat_order}}{vals}}) if $config{show_stats};
-##    my $fake_msg_encrypt = join(' ',@{$stats{$config{stat_order}}{keys}}); # fake_msg are the keys to stats
-##    my $fake_msg_decrypt = join(' ',monosubstitution({state=>$config{state}, msg=>[$fake_msg_encrypt]})); # decrypt the generated fake message
-##    _monoalphabetic_display_text($config{flip}, [$fake_msg_encrypt], [$fake_msg_decrypt]);
-##    say '';
-##    _monoalphabetic_display_text($config{flip}, \@msg_encrypt, \@msg_decrypt)
-##}
-###ZZZ
-#
-### monoalphabetic_plaintext_recovery AAA
-##sub monoalphabetic_plaintext_recovery {
-##    my %msg = @_;
-##    $msg{update} = 0;
-##    my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, flip=>0, solved=>$msg{solved});
-##    $bob{state} = defined $msg{state} ? $msg{state} : {};
-##    my @msg_encrypt = @{$msg{msg}}; #$bob{msg} = $msg{msg};
-##    my %stats = Stats::build_stat_indices($msg{stats}//{});
-##
-##    while ($bob{action} and ! $bob{solved}) {
-##	system('clear');
-##	_monoalphabetic_display(\%bob, \%stats, \@msg_encrypt);
-##	print "encrypt/decrypt pair? ";
-##	chomp($bob{action}=<STDIN>);
-##	%bob = parse_action(\%bob);
-##    }
-##    $bob{action} = 'yes';
-##    if (! $bob{solved}) {
-##	print "save msg? ";
-##	chomp($bob{action}=<STDIN>);
-##    }
-##    if ($bob{action} =~ /^y/i) {
-##	$msg{solved} = $bob{solved};
-##	$msg{state} = $bob{state};
-##	$msg{update} = 1;
-##    }
-##    return wantarray ? %msg : \%msg;
-##}
-###ZZZ
+#    my $commands_regex = join('|', map {"($_)"} ('quit', keys %commands));
+#    $commands_regex = qr/$commands_regex/;
+#    while (1) {
+#  	system('clear');
+#	say "order = $bob{order}";
+#	say join(' ', 'key :', @{$bob{top}});
+#	say join(' ', 'val :', @{$bob{bottom}});
+#	if (exists $bob{keywords}) {
+#	    say 'keywords :';
+#	    say "\t$_" for @{$bob{keywords}};
+#	}
+#	print "command? ";
+#	chomp(my $reply = <STDIN>);
+#	$reply =~ s/\b($commands_regex)\b//;
+#	my $cmd = $1;
+#	last if $cmd eq 'quit';
+#	next unless exists $commands{$cmd};
+#	$bob{option} = $reply =~ s/^\s*|\s*$//r;
+#	%bob = $commands{$cmd}(\%bob);
+#    }
+#    print "update? ";
+#    chomp(my $reply = <STDIN>);
+#    $bob{update} = $reply =~ /^y/i;
+#    if ($bob{update} and exists $bob{keywords}) {
+#	$msg{keywords} = [@{$bob{keywords}}];
+#	$msg{update} = 1;
+#    }
+#    return wantarray ? %msg : \%msg;
+#}
 ##ZZZ
+#
+## monosubstitution AAA
+#sub monosubstitution {
+#    my %data = %{shift @_};
+#    my $CIPHER = join('', keys $data{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+#    my $plain = lc join('', values $data{state})//'abcdefghijklmnopqrstuvwxyz';
+#
+#    my @rtn;
+#    for (@{$data{msg}}) {
+#	my $line = $_;
+#	eval "\$line =~ tr/$CIPHER/$plain/" if $CIPHER;
+#	$line =~ s/[[:upper:]]/ /g;
+#	eval "\$line =~ tr/$plain/\U$plain/" if $plain;
+#	push @rtn, $line;
+#    }
+#    return wantarray ? @rtn : \@rtn;
+#}
+##ZZZ
+#
+## parse_action AAA
+#sub parse_action {
+#    my %checks = %{shift @_};
+#    my $my_action   = 1 - ($checks{action} =~ s/quit//);
+#    if ($checks{action} =~ s/(number|alpha)//) {
+#	$checks{stat_order} = $1;
+#    }
+#    if ($checks{action} =~ s/solved//) {
+#	$checks{solved} = 1;
+#	$my_action = 0; 
+#    }
+#    if ($checks{action} =~ s/stats//) {
+#	$checks{show_stats} = 1 - $checks{show_stats};
+#    }
+#    if ($checks{action} =~ s/flip//) {
+#	$checks{flip} = 1 - $checks{flip};
+#    }
+#    $checks{action} =~ s/^\s+|\s+$//g; # remove leading/trailing spaces
+#    if ($checks{action}) {
+#	for (split /:/, $checks{action}) {
+#	    next unless length $_ le 2;
+#	    my ($f, $s) = split //, uc $_;
+#	    $checks{state}{$f} = $s =~ /\w/ ? $s : ' ';
+#	}
+#    }
+#    $checks{action} = $my_action;
+#    return wantarray ? %checks : \%checks;
+#}
+##ZZZ
+#
+## _monoalphabetic_display_text AAA
+#sub _monoalphabetic_display_text {
+#    my $flip = shift;
+#    my @top; my @bot;
+#    if ($flip) {
+#	@bot = @{shift @_};
+#	@top = @{shift @_};
+#    } else {
+#	@top = @{shift @_};
+#	@bot = @{shift @_};
+#    }
+#    while (my ($ndx, $top) = each @top) {
+#	say $top;
+#	say $bot[$ndx];
+#	say '';
+#    }
+#}
+##ZZZ
+#
+## _monoalphabetic_display AAA
+#sub _monoalphabetic_display {
+#    my %config      = %{shift @_};
+#    my %stats       = %{shift @_};
+#    my @msg_encrypt = @{shift @_};
+#    my @msg_decrypt = monosubstitution({state=>$config{state}, msg=>[@msg_encrypt]});
+#
+#    say join(' ', @{$stats{$config{stat_order}}{vals}}) if $config{show_stats};
+#    my $fake_msg_encrypt = join(' ',@{$stats{$config{stat_order}}{keys}}); # fake_msg are the keys to stats
+#    my $fake_msg_decrypt = join(' ',monosubstitution({state=>$config{state}, msg=>[$fake_msg_encrypt]})); # decrypt the generated fake message
+#    _monoalphabetic_display_text($config{flip}, [$fake_msg_encrypt], [$fake_msg_decrypt]);
+#    say '';
+#    _monoalphabetic_display_text($config{flip}, \@msg_encrypt, \@msg_decrypt)
+#}
+##ZZZ
+#
+## monoalphabetic_plaintext_recovery AAA
+#sub monoalphabetic_plaintext_recovery {
+#    my %msg = @_;
+#    $msg{update} = 0;
+#    my %bob = (stat_order=>'alpha', show_stats=>1, action=>1, flip=>0, solved=>$msg{solved});
+#    $bob{state} = defined $msg{state} ? $msg{state} : {};
+#    my @msg_encrypt = @{$msg{msg}}; #$bob{msg} = $msg{msg};
+#    my %stats = Stats::build_stat_indices($msg{stats}//{});
+#
+#    while ($bob{action} and ! $bob{solved}) {
+#	system('clear');
+#	_monoalphabetic_display(\%bob, \%stats, \@msg_encrypt);
+#	print "encrypt/decrypt pair? ";
+#	chomp($bob{action}=<STDIN>);
+#	%bob = parse_action(\%bob);
+#    }
+#    $bob{action} = 'yes';
+#    if (! $bob{solved}) {
+#	print "save msg? ";
+#	chomp($bob{action}=<STDIN>);
+#    }
+#    if ($bob{action} =~ /^y/i) {
+#	$msg{solved} = $bob{solved};
+#	$msg{state} = $bob{state};
+#	$msg{update} = 1;
+#    }
+#    return wantarray ? %msg : \%msg;
+#}
+##ZZZ
+#
+## monoalphabetic_solver AAA
+#sub monoalphabetic_solver {
+#    my %msg = @_;
+#
+#    $msg{stats} = {Stats::mono_stats($msg{msg})} unless exists $msg{stats};
+#
+#    while (1) {
+#	my @work_menu = qw/plaintext key/;
+#	#my ($work) = Menu::pick({header=>'which would you like to recover? '}, @work_menu);
+#	my $work = Menu::simple('which would you like to recover? ', @work_menu);
+#	last if $work < 0;
+#	my %update = $work ? monoalphabetic_key_recovery(%msg) : monoalphabetic_plaintext_recovery(%msg);
+#	if ($update{update}) {
+#	    delete $update{update};
+#	    %msg = %update;
+#	}
+#    }
+#    return wantarray ? %msg : \%msg;
+#}
+##ZZZ
+#ZZZ
 
 # new_mono_sub AAA
 sub new_mono_sub {
-    my %config = %{shift @_};
-    my %msg = %{shift @_};
+#   my %config = %{shift @_};
+#   my %msg = %{shift @_};
+    our %config;
+    my %msg = (@_);
     my $encrypt = join('', keys $msg{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     my $decrypt = lc join('', values $msg{state})//'abcdefghijklmnopqrstuvwxyz';
 
@@ -251,14 +277,19 @@ sub new_mono_sub {
 
 # mono_Message_display #AAA
 sub mono_Message_display {
-    my @decrypt = new_mono_sub(@_);
-    my %config = %{shift @_};
-    my %msg = %{shift @_};
+    our %config;
+    my %msg = (@_);
+    #my @decrypt = new_mono_sub(@_);
+    my @decrypt = new_mono_sub(%msg);
+
+#   my %config = %{shift @_};
+#   my %msg = %{shift @_};
     my @top    = $config{top_line} eq 'decrypt' ? @decrypt     : @{$msg{msg}};
     my @bottom = $config{top_line} eq 'decrypt' ? @{$msg{msg}} : @decrypt;
     while (my ($ndx, $val) = each (@top)) {
 	say $val;
  	say $bottom[$ndx];
+	say '';
     }
     say '';
 }
@@ -266,20 +297,25 @@ sub mono_Message_display {
 
 # mono_Stat_display #AAA
 sub mono_Stat_display {
-    my %config = %{shift @_};
-    my %msg = %{shift @_};
+    our %config;
+    my %msg = (@_);
+#   my %config = %{shift @_};
+#   my %msg = %{shift @_};
     my @order = Stats::get_Stat_order(\%config, $msg{stats});
-
-    say join(' ', map {sprintf "%2s", $_} @{$msg{stats}{freqs}}{@order});
-    say join(' ', map {sprintf "%2s", $_} @order);
-    say '';
+    if ($config{show_stat} eq 'yes') {
+	say join(' ', map {sprintf "%2s", $_} @{$msg{stats}{freqs}}{@order});
+	say join(' ', map {sprintf "%2s", $_} @order);
+	say '';
+    }
 }
 #ZZZ
 
 # mono_Recovery_display #AAA
 sub mono_Recovery_display {
-    my %config = %{shift @_};
-    my %msg = %{shift @_};
+    our %config;
+    my %msg = (@_);
+#   my %config = %{shift @_};
+#   my %msg = %{shift @_};
     my @order = Stats::get_Stat_order(\%config, $msg{stats});
     my @top    = $config{top_line} eq 'decrypt' ? @{$msg{state}}{@order} : @order;
     my @bottom = $config{top_line} eq 'decrypt' ? @order : @{$msg{state}}{@order};
@@ -289,30 +325,77 @@ sub mono_Recovery_display {
 }
 #ZZZ
 
-# monoalphabetic_solver AAA
-sub monoalphabetic_solver {
-    my %msg = @_;
-
-    $msg{stats} = {Stats::mono_stats($msg{msg})} unless exists $msg{stats};
-
-    while (1) {
-	my @work_menu = qw/plaintext key/;
-	#my ($work) = Menu::pick({header=>'which would you like to recover? '}, @work_menu);
-	my $work = Menu::simple('which would you like to recover? ', @work_menu);
-	last if $work < 0;
-	my %update = $work ? monoalphabetic_key_recovery(%msg) : monoalphabetic_plaintext_recovery(%msg);
-	if ($update{update}) {
-	    delete $update{update};
-	    %msg = %update;
-	}
+# config_merge #AAA
+sub config_merge {
+    our %parse_rules;
+    my %rules = %{$parse_rules{configs}};
+    our %config;
+    my @list = (@_);
+#   my %config = %{shift @_};
+    my @list = @{shift @_};
+    for my $tag (@list) {
+        my $key = $rules{$tag}{display};
+        if ($rules{$tag}{type} eq 'toggle') {
+            ($config{$key}) = grep {$_ ne $config{$key}} @{$rules{$tag}{values}};
+        } else {
+            my @menu = @{$rules{$tag}{values}};
+            my @items = Menu::pick(@menu);
+        }
     }
-    return wantarray ? %msg : \%msg;
+    return %config;
 }
 #ZZZ
 
+# cipher_Plain_merge #AAA cp_merge
+sub _cipher_Plain_merge {
+    my %rtn = %{shift @_};
+    for (map {split /:/} @{shift @_}) {
+        my ($c, $p) = split //, uc $_;
+        $rtn{$c} = $p;
+    }
+    return wantarray ? %rtn : \%rtn;
+}
+#ZZZ
+
+# parse #AAA
+sub parser {
+    our %rules;
+    my @parts = @_;
+    my %rtn;
+    for my $type (keys %rules) {
+        if (ref $rules{$type}) {
+            push @{$rtn{$type}}, grep {$_ ~~ $rules{$type}} @parts;
+        } else {
+            push @{$rtn{$type}}, grep {$_ =~ qr/$rules{$type}/} @parts;
+        }
+        @parts = grep {! ($_ ~~ $rtn{$type})} @parts;
+    }
+    @{$rtn{unknown}} = @parts;
+    return %rtn;
+}
+#ZZZ
+
+
+our %callbacks = (
+    msg => \&mono_Message_display,
+    stat => \&mono_Stat_display,
+    recovery => \&mono_Recovery_display,
+);
+
+# this may need some tlc
+# local_display #AAA
+sub local_display {
+    our %config;
+    system('clear'); # here there be dragons
+    my %cb = %Ciphers::Mono::callbacks;
+    &{$cb{$_}}(@_) for split /\s/, $config{display}; # should we just mae config{display} a list?
+}
+#ZZZ
+
+# mono #AAA
 sub mono {
-    my %config = %{shift @_};
-    my %msg = %{shift @_};
+    our %config;
+    my %msg = (@_);
     $msg{stats} = {Stats::mono_Stats($msg{msg})} unless exists $msg{stats};
 
     if (! exists $msg{state}) {
@@ -320,17 +403,16 @@ sub mono {
     }
 
     {
-	system('clear');
-	mono_Stat_display(\%config, \%msg);
-	mono_Recovery_display(\%config, \%msg);
-	mono_Message_display(\%config, \%msg);
-	print "> ";
-	chomp(my $input=<STDIN>);
-	my %parsed_input = mono_Parse_input($input);
-#take care of subs, config changes, key guesses
-	$parsed_input{action} eq 'again' ? redo : last;
+	local_display(\%msg);
+	print '> ';
+	chomp(my $response=<STDIN>);
+	my %response_parsed = parse($response);
+	%config = config_merge(current=>\%config, update=>$response_parsed{configs}) if exists $response_parsed{configs};
+	$msg{state} = _cipher_Plain_merge($msg{state}, $response_parsed{cp}) if exists $response_parsed{cp};
+	'quit' ~~ $current_parse{actions} ? last : redo;
     }
 }
+#ZZZ
 
 # next task !!!!!!!!!!!!!!#AAA
 sub headline_display {

@@ -37,7 +37,6 @@ my $prompt = $default ? "pick a word (default:=$list[$default-1])> " : 'pick >';
 my $rtn = Menu::simple(default=>$default, prompt=>$prompt, data=>\@list);
 $rtn ~~ [keys @list] ? say $list[$rtn] : die 'bad choice'
 
-# just testing changes.
 #my %menu;
 #my @keys;
 #while (my ($ndx, $val) = each (@list)) {

@@ -6,15 +6,21 @@ use v5.18;
 use experimental qw(smartmatch);
 
 use Data::Printer;
+
 #use Path::Tiny;
 #use JSON::PP;
 
-use Setup;
-our %config = Setup::init_Config() unless keys %config; #this should be the instantiation
+#use Setup;
+#our %config;
+#our %config = Setup::init_Config() unless keys %config; #this should be the instantiation
+#$config{setup} = 'Ciphers::Mono';
+#our %config;
+#warn 'showing config frm Ciphers::Mono';
+#p %config;
 
-use Menu;
-use Stats;
-    
+#use Menu;
+#use Stats;
+
 # commands AAA
 
 my %commands;
@@ -256,9 +262,14 @@ my %commands;
 
 # new_mono_sub AAA
 sub new_mono_sub {
+    our %config;
+    if ($_[0] eq 'debug') {
+	shift;
+	p @_;
+	say join(' : ', (caller(0))[0,1,2,3]);
+    }
 #   my %config = %{shift @_};
 #   my %msg = %{shift @_};
-    our %config;
     my %msg = (@_);
     my $encrypt = join('', keys $msg{state})//'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     my $decrypt = lc join('', values $msg{state})//'abcdefghijklmnopqrstuvwxyz';
@@ -278,7 +289,13 @@ sub new_mono_sub {
 # mono_Message_display #AAA
 sub mono_Message_display {
     our %config;
-    my %msg = (@_);
+    if ($_[0] eq 'debug') {
+	shift;
+	warn 'mono_Message_display has config as';
+	p %config;
+	say join(' : ', (caller(0))[0,1,2,3]);
+    }
+    my %msg = %{shift @_};
     #my @decrypt = new_mono_sub(@_);
     my @decrypt = new_mono_sub(%msg);
 
@@ -298,10 +315,19 @@ sub mono_Message_display {
 # mono_Stat_display #AAA
 sub mono_Stat_display {
     our %config;
-    my %msg = (@_);
-#   my %config = %{shift @_};
-#   my %msg = %{shift @_};
-    my @order = Stats::get_Stat_order(\%config, $msg{stats});
+    if ($_[0] eq 'debug') {
+	shift;
+	warn 'mono_Stat_display has config as:';
+	p %config;;
+	say join(' : ', (caller(0))[0,1,2,3]);
+    }
+#   p %config;
+    #warn 'input for mono_Stat_display';
+    #p @_;
+    my %msg = %{shift @_};
+    #p %msg;
+    #die 'Stat_display check';
+    my @order = Stats::get_Stat_order($msg{stats});
     if ($config{show_stat} eq 'yes') {
 	say join(' ', map {sprintf "%2s", $_} @{$msg{stats}{freqs}}{@order});
 	say join(' ', map {sprintf "%2s", $_} @order);
@@ -313,10 +339,17 @@ sub mono_Stat_display {
 # mono_Recovery_display #AAA
 sub mono_Recovery_display {
     our %config;
-    my %msg = (@_);
-#   my %config = %{shift @_};
-#   my %msg = %{shift @_};
-    my @order = Stats::get_Stat_order(\%config, $msg{stats});
+    if ($_[0] eq 'debug') {
+	shift;
+	warn 'mono_Recovery_display has config as:';
+	p %config;
+	say join(' : ', (caller(0))[0,1,2,3]);
+    }
+
+#   p %config;
+    my %msg = %{shift @_};
+#   p %msg;
+    my @order = Stats::get_Stat_order($msg{stats});
     my @top    = $config{top_line} eq 'decrypt' ? @{$msg{state}}{@order} : @order;
     my @bottom = $config{top_line} eq 'decrypt' ? @order : @{$msg{state}}{@order};
     say join(' ', map {sprintf "%2s", $_} @top);
@@ -332,7 +365,7 @@ sub config_merge {
     our %config;
     my @list = (@_);
 #   my %config = %{shift @_};
-    my @list = @{shift @_};
+#   my @list = @{shift @_};
     for my $tag (@list) {
         my $key = $rules{$tag}{display};
         if ($rules{$tag}{type} eq 'toggle') {
@@ -346,7 +379,7 @@ sub config_merge {
 }
 #ZZZ
 
-# cipher_Plain_merge #AAA cp_merge
+# cipher_Plain_merge #AAA
 sub _cipher_Plain_merge {
     my %rtn = %{shift @_};
     for (map {split /:/} @{shift @_}) {
@@ -357,48 +390,59 @@ sub _cipher_Plain_merge {
 }
 #ZZZ
 
-# parse #AAA
-sub parser {
-    our %rules;
-    my @parts = @_;
-    my %rtn;
-    for my $type (keys %rules) {
-        if (ref $rules{$type}) {
-            push @{$rtn{$type}}, grep {$_ ~~ $rules{$type}} @parts;
-        } else {
-            push @{$rtn{$type}}, grep {$_ =~ qr/$rules{$type}/} @parts;
-        }
-        @parts = grep {! ($_ ~~ $rtn{$type})} @parts;
-    }
-    @{$rtn{unknown}} = @parts;
-    return %rtn;
-}
-#ZZZ
+## parser #AAA
+#sub parser {
+#    our %rules;
+#    p %rules;
+#    die 'parser';
+#    my @parts = @_;
+#    my %rtn;
+#    for my $type (keys %rules) {
+#        if (ref $rules{$type}) {
+#            push @{$rtn{$type}}, grep {$_ ~~ $rules{$type}} @parts;
+#        } else {
+#            push @{$rtn{$type}}, grep {$_ =~ qr/$rules{$type}/} @parts;
+#        }
+#        @parts = grep {! ($_ ~~ $rtn{$type})} @parts;
+#    }
+#    @{$rtn{unknown}} = @parts;
+#    return %rtn;
+#}
+##ZZZ
 
 
 our %callbacks = (
     msg => \&mono_Message_display,
-    stat => \&mono_Stat_display,
+    stats => \&mono_Stat_display,
     recovery => \&mono_Recovery_display,
 );
 
 # this may need some tlc
-# local_display #AAA
-sub local_display {
-    our %config;
-    system('clear'); # here there be dragons
-    my %cb = %Ciphers::Mono::callbacks;
-    &{$cb{$_}}(@_) for split /\s/, $config{display}; # should we just mae config{display} a list?
-}
-#ZZZ
+## local_display #AAA
+#sub local_display {
+#    our %config;
+##   p @_;
+##    my %input = %{shift @_};
+##    p %input;
+##   die 'check';
+#    system('clear'); # here there be dragons
+#    my %cb = %Ciphers::Mono::callbacks;
+#    &{$cb{$_}}(@_) for split /\s/, $config{display}; # should we just mae config{display} a list?
+##   &{$callbacks{stats}}(@_);
+##   &{$cb{recovery}}(@_);
+##   &{$cb{msg}}(@_);
+#}
+##ZZZ
 
 # mono #AAA
 sub mono {
     our %config;
     my %msg = (@_);
     $msg{stats} = {Stats::mono_Stats($msg{msg})} unless exists $msg{stats};
-
-    if (! exists $msg{state}) {
+#   p %msg;
+#   die 'after mono_Stats';
+my %current_parse = ( 'quit' => 1 );
+    if (! exists $msg{state} or ! defined $msg{state}) {
 	$msg{state} = {map {$_ => ' '} keys %{$msg{stats}{freqs}}};
     }
 
@@ -406,7 +450,9 @@ sub mono {
 	local_display(\%msg);
 	print '> ';
 	chomp(my $response=<STDIN>);
-	my %response_parsed = parse($response);
+	my %response_parsed = parser($response);
+	p %response_parsed;
+	die 'response checke';
 	%config = config_merge(current=>\%config, update=>$response_parsed{configs}) if exists $response_parsed{configs};
 	$msg{state} = _cipher_Plain_merge($msg{state}, $response_parsed{cp}) if exists $response_parsed{cp};
 	'quit' ~~ $current_parse{actions} ? last : redo;

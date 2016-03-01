@@ -79,9 +79,9 @@ sub process_family {
     my %given = (@_);
     my $solver = $given{solver};
     my %msg = get_msg($given{family});
-    warn 'process_family';
-    p %msg;
-    die 'oops';
+#    warn 'process_family';
+#    p %msg;
+#    die 'oops';
     while ('msg' ~~ %msg) {
         {
             %msg = &$solver(%msg);

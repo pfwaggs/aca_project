@@ -1,0 +1,63 @@
+{
+    "A" : {
+      "1" : {
+         "msg" : [
+            "D'R UPAWXGC TX FZW JTAVB D BPL, FT SWWO FZWR BTXF PEV",
+            "BJWWF. D EWHWA SETJ XATR VPL FT VPL JZDUZ TEWB D'CC ZPHW",
+            "FT WPF."
+         ],
+         "solved" : 0,
+         "stats" : {
+            "freqs" : {
+               "V" : "4",
+               "D" : "5",
+               "H" : "2",
+               "X" : "4",
+               "S" : "2",
+               "O" : "1",
+               "T" : "9",
+               "R" : "3",
+               "U" : "2",
+               "A" : "4",
+               "F" : "8",
+               "E" : "4",
+               "Z" : "5",
+               "L" : "3",
+               "B" : "5",
+               "W" : "12",
+               "J" : "4",
+               "P" : "7",
+               "G" : "1",
+               "C" : "3"
+            },
+            "ic" : {
+               "prod_sum" : 446,
+               "total" : 88,
+               "value" : 1.51462904911181
+            }
+         },
+         "state" : {
+            "C" : "L",
+            "P" : "A",
+            "G" : "U",
+            "W" : "E",
+            "J" : "W",
+            "Z" : "H",
+            "L" : "Y",
+            "B" : "S",
+            "A" : "R",
+            "F" : "T",
+            "E" : "N",
+            "O" : "P",
+            "T" : "O",
+            "R" : "M",
+            "U" : "C",
+            "X" : "F",
+            "S" : "K",
+            "V" : "D",
+            "D" : "I",
+            "H" : "V"
+         }
+      }
+    }
+}

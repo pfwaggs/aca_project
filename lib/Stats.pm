@@ -8,16 +8,24 @@ use Data::Printer;
 use Path::Tiny;
 use JSON::PP;
 
-our %config;
+#our %config;
+our %config = Setup::init_Config() unless keys %config; #this should be the instantiation
+
 #%config = Setup::init_Config() unless keys %config;
 
 # get_Stat_order #AAA
 sub get_Stat_order {
     our %config;
-    my %stats = (@_);
-#   my %config = %{shift @_};
-#   my %stats = %{shift @_};
+#   warn 'input for get_Stat_order';
+#   p @_;
+    #die 'get_Stat_order';
+    my %stats = %{shift @_};
+#   p %stats;
     my %freq = %{$stats{freqs}};
+#   p %freq;
+    my %ic = %{$stats{ic}};
+#   p %ic;
+#   die 'Stat_order check';
     my @rtn;
     if ($config{stats_order} eq 'alpha') {
 	@rtn = sort keys %freq;
@@ -51,7 +59,9 @@ sub get_Stat_order {
 sub mono_Stats {
 #   my @txt = @{shift @_};
     my %counts;
-    for (map {s/\W//gr} @_) {
+    #p @_;
+    #die 'mono_Stats check';
+    for (map {s/\W//gr} @{shift @_}) {
 	map {$counts{$_}++} split //, $_;
     }
     my %rtn = (freqs => {%counts}, ic => {_ic(%counts)});

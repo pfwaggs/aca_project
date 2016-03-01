@@ -1,0 +1,36 @@
+{
+    "actions" : [
+	"quit",
+	"help"
+    ],
+    "configs" : {
+	"^" : {
+	    "help" : "toggles the content of top line in recovery block",
+	    "type" : "toggle",
+	    "display" : "top_line",
+	    "values" : [
+		"decrypt",
+		"encrypt"
+	    ]
+	},
+	"%" : {
+	    "help" : "turns stats on or off",
+	    "type" : "toggle",
+	    "display" : "show_stat",
+	    "values" : [
+		"yes",
+		"no"
+	    ]
+	},
+	"#" : {
+	    "help" : "toggles ordering of stats output (alpha/numeric)",
+	    "type" : "toggle",
+	    "display" : "stats_order",
+	    "values" : [
+		"alpha",
+		"numeric"
+	    ]
+	}
+    },
+    "cp" : "^[[:alpha:]]{2}(:[[:alpha:]]{2})*$"
+}

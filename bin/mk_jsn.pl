@@ -4,55 +4,38 @@
 
 use warnings;
 use strict;
-use v5.18;
+use v5.22;
+use experimental qw(signatures postderef smartmatch);
 
-#use Getopt::Long qw( :config no_ignore_case auto_help );
-#my %opts;
-#my @opts;
-#my @commands;
-#GetOptions( \%opts, @opts, @commands ) or die 'something goes here';
-#use Pod::Usage;
-#use File::Basename;
-#use Cwd;
-
+use Getopt::Long qw(:config no_ignore_case auto_help);
 use Path::Tiny;
-use JSON::PP;
+use JSON;
 use Data::Printer;
 
-our $dir;
-BEGIN {
-    our $dir = Path::Tiny->cwd;
-    $dir = path($dir)->parent if $dir =~ m{/bin$};
-    $dir = path($dir)->stringify;
-    unshift @INC, "$dir/lib" unless grep {/$dir/} @INC;
-}
-use Menu;
+my %opts = (empties => 0);
+my @opts = ('empties');
+GetOptions(\%opts, @opts) or die 'invalid option given', "\n";
 
-my @lines = map {s/^\s*|\s*$//gr} path(shift)->lines({chomp=>1});
-my $base_name = shift @lines;
-$base_name =~ s/\s+/_/g;
+my $input = shift or die 'no input file given', "\n";
+my $output = path($input)->basename =~ s/\.(\w+)$/.json/r;
+
+chomp (my @input_msgs = split /^\s*$/m, path($input)->slurp);
+say 'msg count is ', scalar @input_msgs;
 
 my %msgs;
-my @meta;
-my @msg;
-for (@lines) {
-    if (/\w/) {
-        if(/^[[:alpha:]-]+-\d+\.$/) {
-            push @meta, $_;
+for my $msg (@input_msgs) {
+    my ($key, @lines) = grep {! /^$/} split /\n/, $msg;
+    $key =~ s/^\s*|\s*$//g;
+    if ($key) {
+        if (@lines) {
+            $msgs{$key}{msg} = [@lines];
         } else {
-            push @msg, $_;
+            $msgs{$key}{msg} = [] if $opts{empties};
+            warn 'no msg body for key: ', $key , "\n";
         }
-    } else {
-        my ($meta) = 1 < @meta ? Menu::pick({},@meta) : $meta[0];
-        my @meta_fields = split /\W/, $meta;
-        my $key = pop @meta_fields;
-        my $family = join('-',@meta_fields);
-        $msgs{$family}{$key}{msg} = [@msg];
-        $msgs{$family}{$key}{state} = undef;
-        $msgs{$family}{$key}{solved} = 0;
-        @meta = ();
-        @msg = ();
+        $msgs{$key}{state} = '';
+        $msgs{$key}{solved} = 0;
     }
 }
-my $jpp = JSON::PP->new->utf8->pretty;
-path("$base_name.jsn")->spew($jpp->encode(\%msgs));
+say 'writing output to ', $output;
+path($output)->spew(JSON->new->utf8->pretty->encode(\%msgs));
